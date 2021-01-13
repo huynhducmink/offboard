@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="offboard" type="setpoint" name="setpoint" output="screen"></node>
-</launch>
