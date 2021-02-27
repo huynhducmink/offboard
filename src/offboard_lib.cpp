@@ -88,7 +88,7 @@ void input_local_target()
 		std::cout << "pos_x_" << i+1 << ": "; std::cin >> target_pos[i][0];
 		std::cout << "pos_y_" << i+1 << ": "; std::cin >> target_pos[i][1];
 		std::cout << "pos_z_" << i+1 << ": "; std::cin >> target_pos[i][2];
-		updates_local(i, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
+		// updates_local(i, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
 		// std::cout << "Target (" << i+1 << ") orientation (in degree):" <<std::endl; 
 		target_pos[i][3] = 0;
 		target_pos[i][4] = 0;
@@ -113,7 +113,7 @@ void input_global_target()
 		std::cout << "Latitude  " << i+1 << " (in degree): "; std::cin >> goal_pos[i][0];
 		std::cout << "Longitude " << i+1 << " (in degree): "; std::cin >> goal_pos[i][1];
 		std::cout << "Altitude  " << i+1 << "  (in meter): "; std::cin >> goal_pos[i][2];
-		updates_global(i, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
+		// updates_global(i, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
 	}
 	std::cout << "Check error value (0 < and < 1m): "; std::cin >> check_error;
 	if (check_error < 0 || check_error > 1) 
@@ -172,7 +172,7 @@ void input_target()
 				std::cout << "Target (" << i+1 << "): [" << target_pos[i][0] << ", "
 														 << target_pos[i][1] << ", "
 														 << target_pos[i][2] << "]" << std::endl;
-				updates_local(i+1, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
+				// updates_local(i+1, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
 			}
 			std::cout << "Check error value: " << check_error << std::endl;
 		}
@@ -186,7 +186,7 @@ void input_target()
 				goal_pos[i][0] = in_latitude[i];
 				goal_pos[i][1] = in_longitude[i];
 				goal_pos[i][2] = in_altitude[i];
-				updates_global(i+1, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
+				// updates_global(i+1, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
 				std::cout << "Goal (" << i+1 << "): [" << goal_pos[i][0] << ", "
 													   << goal_pos[i][1] << ", "
 													   << goal_pos[i][2] << "]" << std::endl;

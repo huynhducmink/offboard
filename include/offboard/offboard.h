@@ -86,6 +86,15 @@ std::vector<double> in_longitude;
 std::vector<double> in_altitude;
 float local_error, global_error;
 
+double z_hover;
+int num_waypoints;
+geometry_msgs::PoseStamped waypoint_pose;
+geometry_msgs::PoseStamped takeoff_pose;
+std::vector<double> in_z_landing;
+float t_delay, t_hover, t_cargo;
+double descend_range;
+bool trigger;
+
 bool input_type = true; // true == input local || false == input global setpoints
 bool final_check = false; // true == reached final point || false == NOT final point
 float batt_percent; // baterry capacity

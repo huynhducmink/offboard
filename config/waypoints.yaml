@@ -1,10 +1,23 @@
-num_of_target: 4
-x_pos: [0, 6, 6, 0]
-y_pos: [0, 0, 6, 6]
-z_pos: [5, 5, 5, 5]
-target_error: 0.1
+# input setpoints
+## takeoff
+xt: 0
+yt: 0
+zt: 3
+## local
+num_of_target: 2
+x_pos: [6, 12] #, 12, 12]  # meters
+y_pos: [0,  0] #,  6, 12]  # meters
+z_pos: [5,  5] #,  5,  5]  # meters
+target_error: 0.1 # meters
+## global
 num_of_goal: 3
-latitude: [21.006566, 21.006566, 21.006566]
-longitude: [105.842895, 105.842945, 105.842985]
-altitude: [-20, -20, -20]
-goal_error: 0.3
+latitude: [21.006566, 21.006566, 21.006566] # degree
+longitude: [105.842895, 105.842945, 105.842985] # degree
+altitude: [-20, -20, -20] # meters
+goal_error: 0.3 # meters
+# landing waypoints
+hover_time: 5 # seconds - at each setpoints
+waypoint_delay: 0 # seconds
+cargo_unpack: 10 # seconds
+descend_range: 0.3 # meters
+trigger: false # human trigger
