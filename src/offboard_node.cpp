@@ -293,6 +293,10 @@ int main(int argc, char **argv)
                 waypoint_pose.pose.position.z = target_pose.pose.position.z;
                 z_hover = waypoint_pose.pose.position.z;
                 num_waypoints = 0;
+                if(!in_z_landing.empty())
+                {
+                    in_z_landing.clear();
+                }
                 while((z_hover - descend_range) > 0)
                 {
                     z_hover = z_hover - descend_range;
@@ -364,7 +368,7 @@ int main(int argc, char **argv)
                 bool waypoint_check = false;
                 std::cout << "[ INFO] Return setpoint\n";
                 target_pose = waypoint_pose;
-                while (!waypoint_check) //ros::ok() &&
+                while (!waypoint_check) 
                 {
                     target_pose.header.stamp = ros::Time::now();   
                     local_pos_pub.publish(target_pose);
@@ -376,6 +380,17 @@ int main(int argc, char **argv)
                                                 current_pose.pose.position.x,
                                                 current_pose.pose.position.y,
                                                 current_pose.pose.position.z);
+                    if (waypoint_check)
+                    {
+                        t_check = ros::Time::now();
+                        while ((ros::Time::now() - t_check) < ros::Duration(t_hover))
+                        {
+                            local_pos_pub.publish(target_pose);
+
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
+                    }
                     ros::spinOnce();
                     rate.sleep();
                 }
@@ -388,13 +403,14 @@ int main(int argc, char **argv)
             {
                 system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
                 ros::param::get("hover_time", t_hover);
-                t_check = ros::Time::now();
+                
                 std::printf("[ INFO] Reached FINAL position: [%.3f, %.3f, %.3f]\n", 
                                 current_pose.pose.position.x, 
                                 current_pose.pose.position.y, 
                                 current_pose.pose.position.z);
                 std::printf("[ INFO] Ready to LANDING \n");
-            
+
+                t_check = ros::Time::now();
                 while ((ros::Time::now() - t_check) < ros::Duration(t_hover))
                 {
                     local_pos_pub.publish(target_pose);
@@ -411,6 +427,10 @@ int main(int argc, char **argv)
                 waypoint_pose.pose.position.z = target_pose.pose.position.z;
                 z_hover = waypoint_pose.pose.position.z;
                 num_waypoints = 0;
+                if(!in_z_landing.empty())
+                {
+                    in_z_landing.clear();
+                }
                 while((z_hover - descend_range) > 1)
                 {
                     z_hover = z_hover - descend_range;
@@ -418,7 +438,7 @@ int main(int argc, char **argv)
                     num_waypoints++;
                 }
                 int j = 0;
-                while(j < num_waypoints) //ros::ok() &&
+                while(j < num_waypoints) 
                 {
                     target_pose.pose.position.z = in_z_landing[j];
                     target_pose.header.stamp = ros::Time::now();   
@@ -561,7 +581,9 @@ int main(int argc, char **argv)
             std::cout << "\n" << check << std::endl;
             if (check && !final_check)
             {
-                t_check = ros::Time::now();
+                system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                ros::param::get("hover_time", t_hover);
+
                 std::printf("[ INFO] Reached position: [%.8f, %.8f, %.3f]\n", 
                                 global_position.latitude, 
                                 global_position.longitude, 
@@ -578,14 +600,126 @@ int main(int argc, char **argv)
                                 target_pose.pose.position.x, 
                                 target_pose.pose.position.y,
                                 target_pose.pose.position.z);
-                std::cout << "[ INFO] Hover at checkpoint \n";
-
-                while ((ros::Time::now() - t_check) < ros::Duration(10))
+                std::cout << "[ INFO] Ready to land for cargo unpacking \n";
+                
+                t_check = ros::Time::now();
+                while ((ros::Time::now() - t_check) < ros::Duration(t_hover))
                 {
                     local_pos_pub.publish(target_pose);
 
                     ros::spinOnce();
     		        rate.sleep();
+                }
+                
+                std::cout << "[ INFO] Height is Descending...\n";
+
+                system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                ros::param::get("descend_range", descend_range);
+                waypoint_pose.pose.position.x = target_pose.pose.position.x;
+                waypoint_pose.pose.position.y = target_pose.pose.position.y;
+                waypoint_pose.pose.position.z = target_pose.pose.position.z;
+                z_hover = waypoint_pose.pose.position.z;
+                num_waypoints = 0;
+                if(!in_z_landing.empty())
+                {
+                    in_z_landing.clear();
+                }
+                while((z_hover - descend_range) > 0)
+                {
+                    z_hover = z_hover - descend_range;
+                    in_z_landing.push_back(z_hover);
+                    num_waypoints++;
+                }
+                in_z_landing.push_back(0);
+                num_waypoints++;
+                int j = 0;
+                while(j < num_waypoints) //ros::ok() &&
+                {
+                    target_pose.pose.position.z = in_z_landing[j];
+                    target_pose.header.stamp = ros::Time::now();   
+                    local_pos_pub.publish(target_pose);
+
+                    system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                    ros::param::get("trigger", trigger);
+
+                    if(trigger)
+                    {
+                        std::cout << "\nHuman detected\n";
+                        j = 0;
+                        ros::spinOnce();
+                        rate.sleep();
+                    }
+                    else
+                    {
+                        bool waypoint_check = check_position(check_error,
+                                                    target_pose.pose.position.x,
+                                                    target_pose.pose.position.y,
+                                                    target_pose.pose.position.z,
+                                                    current_pose.pose.position.x,
+                                                    current_pose.pose.position.y,
+                                                    current_pose.pose.position.z);
+                        if(waypoint_check)
+                        {            
+                            system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                            ros::param::get("waypoint_delay", t_delay);
+                            t_check = ros::Time::now();
+                            while((ros::Time::now() - t_check) < ros::Duration(t_delay))
+                            {
+                                local_pos_pub.publish(target_pose);
+                                ros::spinOnce();
+                                rate.sleep();
+                            }
+                            std::cout << "Height is Descending...\n";
+                            j++;
+                        }
+                        else
+                        {
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
+                    }   
+                }
+
+                std::cout << "[ INFO] Cargo unpacking\n";
+                system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                ros::param::get("cargo_unpack", t_cargo);
+                target_pose = current_pose;
+                t_check = ros::Time::now();
+                while ((ros::Time::now() - t_check) < ros::Duration(t_cargo)) 
+                {
+                    local_pos_pub.publish(target_pose);
+                    ros::spinOnce();
+                    rate.sleep();                    
+                }
+
+                bool waypoint_check = false;
+                std::cout << "[ INFO] Return setpoint\n";
+                target_pose = waypoint_pose;
+                while (!waypoint_check) 
+                {
+                    target_pose.header.stamp = ros::Time::now();   
+                    local_pos_pub.publish(target_pose);
+                    
+                    waypoint_check = check_position(check_error,
+                                                target_pose.pose.position.x,
+                                                target_pose.pose.position.y,
+                                                target_pose.pose.position.z,
+                                                current_pose.pose.position.x,
+                                                current_pose.pose.position.y,
+                                                current_pose.pose.position.z);
+                    if (waypoint_check)
+                    {
+                        t_check = ros::Time::now();
+                        while ((ros::Time::now() - t_check) < ros::Duration(t_hover))
+                        {
+                            local_pos_pub.publish(target_pose);
+
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
+                    }
+                    ros::spinOnce();
+                    rate.sleep();
                 }
 
                 i = i + 1;
@@ -594,7 +728,9 @@ int main(int argc, char **argv)
             }
             else if (check && final_check)
             {
-                t_check = ros::Time::now();
+                system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                ros::param::get("hover_time", t_hover);
+                
                 std::printf("[ INFO] Reached FINAL position: [%.8f, %.8f, %.3f]\n", 
                                 global_position.latitude, 
                                 global_position.longitude, 
@@ -608,13 +744,80 @@ int main(int argc, char **argv)
                                 target_pose.pose.position.y,
                                 target_pose.pose.position.z);
                 std::printf("[ INFO] Ready to LANDING \n");
-
+                
+                t_check = ros::Time::now();
                 while ((ros::Time::now() - t_check) < ros::Duration(10))
                 {
                     local_pos_pub.publish(target_pose);
 
                     ros::spinOnce();
     		        rate.sleep();
+                }
+                
+                std::cout << "[ INFO] Height is Descending...\n";
+                system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                ros::param::get("descend_range", descend_range);
+                waypoint_pose.pose.position.x = target_pose.pose.position.x;
+                waypoint_pose.pose.position.y = target_pose.pose.position.y;
+                waypoint_pose.pose.position.z = target_pose.pose.position.z;
+                z_hover = waypoint_pose.pose.position.z;
+                num_waypoints = 0;
+                if(!in_z_landing.empty())
+                {
+                    in_z_landing.clear();
+                }
+                while((z_hover - descend_range) > 1)
+                {
+                    z_hover = z_hover - descend_range;
+                    in_z_landing.push_back(z_hover);
+                    num_waypoints++;
+                }
+                int j = 0;
+                while(j < num_waypoints)
+                {
+                    target_pose.pose.position.z = in_z_landing[j];
+                    target_pose.header.stamp = ros::Time::now();   
+                    local_pos_pub.publish(target_pose);
+
+                    system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                    ros::param::get("trigger", trigger);
+
+                    if(trigger)
+                    {
+                        std::cout << "\nHuman detected\n";
+                        j = 0;
+                        ros::spinOnce();
+                        rate.sleep();
+                    }
+                    else
+                    {
+                        bool waypoint_check = check_position(check_error,
+                                                    target_pose.pose.position.x,
+                                                    target_pose.pose.position.y,
+                                                    target_pose.pose.position.z,
+                                                    current_pose.pose.position.x,
+                                                    current_pose.pose.position.y,
+                                                    current_pose.pose.position.z);
+                        if(waypoint_check)
+                        {            
+                            system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
+                            ros::param::get("waypoint_delay", t_delay);
+                            t_check = ros::Time::now();
+                            while((ros::Time::now() - t_check) < ros::Duration(t_delay))
+                            {
+                                local_pos_pub.publish(target_pose);
+                                ros::spinOnce();
+                                rate.sleep();
+                            }
+                            std::cout << "Height is Descending...\n";
+                            j++;
+                        }
+                        else
+                        {
+                            ros::spinOnce();
+                            rate.sleep();
+                        }
+                    }   
                 }
 
                 set_mode.request.custom_mode = "AUTO.LAND";
@@ -623,9 +826,6 @@ int main(int argc, char **argv)
                     std::cout << "[ INFO] AUTO.LAND enabled \n";
                     break;
                 }
-
-                ros::spinOnce();
-                rate.sleep();
             }
             else 
             {

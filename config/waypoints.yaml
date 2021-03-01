@@ -4,16 +4,16 @@ xt: 0
 yt: 0
 zt: 3
 ## local
-num_of_target: 2
-x_pos: [6, 12] #, 12, 12]  # meters
-y_pos: [0,  0] #,  6, 12]  # meters
-z_pos: [5,  5] #,  5,  5]  # meters
+num_of_target: 4
+x_pos: [6, 12, 12, 12]  # meters
+y_pos: [0,  0,  6, 12]  # meters
+z_pos: [5,  7,  10,  4]  # meters
 target_error: 0.1 # meters
 ## global
 num_of_goal: 3
-latitude: [21.006566, 21.006566, 21.006566] # degree
-longitude: [105.842895, 105.842945, 105.842985] # degree
-altitude: [-20, -20, -20] # meters
+latitude: [21.006576, 21.006576, 21.006576] # degree
+longitude: [105.842895, 105.842965, 105.843005] # degree
+altitude: [-20, -16, -18] # meters
 goal_error: 0.3 # meters
 # landing waypoints
 hover_time: 5 # seconds - at each setpoints
