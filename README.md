@@ -1,11 +1,11 @@
 # ivsr offboard package
-
+#### Local/Global Position control and Human-avoid Landing
 ## contain
 - *include/offboard/offboard.h* : header offboard
 - *include/offboard/logging.h*  : header logging
 
 - *src/hover_node.cpp*      : keep drone hovering on input z height
-- *src/offboard_node.cpp*   : keep drone flying follow waypoints (local or global)
+- *src/offboard_node.cpp*   : keep drone flying follow setpoints (local or global), landing at each setpoint to unpack cargo with avoid human
 - *src/logging_node.cpp*    : get data and write into "position.csv", "sensor.csv" files that at current working directory
 - *src/offboard_lib.cpp*    : library for offboard node
 - *src/logging_lib.cpp*     : library for logging node
@@ -25,15 +25,18 @@
 
 ## usage
 
-### connect to pixhawk or run simulation
-#### on jetson
+### CONNECT TO PIXHAWK or RUN SIMUALTION
+#### on jetson (via ssh)
 - *connect jetson to pixhawk* 
 
 - `roslaunch mavros px4.launch fcu_url:=/dev/ttyTHS1:921600`
 #### run simulation
 - `roslaunch px4 mavros_posix_sitl.launch`
 
-### after connected to pixhawk 4 or run simulation, run:
+#### change landing auto disarm parameter
+- `pxh> param set COM_DISARM_LAND -1`
+
+### AFTER CONNECTED TO PIXHAWK or RUN SIMULATION, RUN:
 #### hovering node
 - *run hover_node*                 : `rosrun offboard hover`
 - **check current position on screen**
@@ -43,7 +46,7 @@
 - **on remote controller** switch to ARM, then switch flight mode to OFFBOARD
 
   on simualation: `rosrun offboard setmode_offb`
-### or:
+### OR:
 #### offboard node
 - *run offboard_node*                 : `rosrun offboard offboard`
 - **manual input or load input from waypoints.yaml config file**
@@ -51,8 +54,8 @@
 - **on remote controller** switch to ARM, then switch flight mode to OFFBOARD
 
   on simualation: `rosrun offboard setmode_offb`
+- simualate detected human by change `trigger` parameter in waypoints.yaml configure file from `false` to `true`
 
-### run logging node along
+### RUN LOGGING NODE ALONG
 #### logging node
 - *run logging_node*                 : `rosrun offboard logging`
-
