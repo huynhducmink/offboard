@@ -187,9 +187,14 @@ void input_target()
 				goal_pos[i][1] = in_longitude[i];
 				goal_pos[i][2] = in_altitude[i];
 				// updates_global(i+1, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
-				std::cout << "Goal (" << i+1 << "): [" << goal_pos[i][0] << ", "
-													   << goal_pos[i][1] << ", "
-													   << goal_pos[i][2] << "]" << std::endl;
+				// std::cout << "Goal (" << i+1 << "): [" 
+				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][0] << ", "
+				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][1] << ", "
+				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][2] << "]" << std::endl;
+				std::printf("Goal (%d): [%.8f, %.8f, %.3f]\n", i+1,
+                                goal_pos[i][0], 
+                                goal_pos[i][1], 
+                                goal_pos[i][2]);
 			}
 			std::cout << "Check error value: " << check_error << std::endl;
 		}
