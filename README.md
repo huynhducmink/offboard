@@ -1,6 +1,6 @@
 # ivsr offboard package
 #### Local/Global Position control and Human-avoid Landing
-## contain
+## I. Overview
 - *include/offboard/offboard.h* : header offboard
 - *include/offboard/logging.h*  : header logging
 
@@ -15,29 +15,29 @@
 - *package.xml*             : ros manifests
 - *CMakeLists.txt*          : CMakeLists
 
-## required
-- **ros**             : tested on Melodic (Ubuntu 18.04)
+## II. Required
+- **ROS**             : tested on Melodic (Ubuntu 18.04)
 - **PX4**             : tested on v10.0.1 
 - **catkin workspace**: `catkin_ws`
-- **mavros**          : [here](https://dev.px4.io/master/en/ros/mavros_installation.html)
+- **MAVROS**          : [here](https://dev.px4.io/master/en/ros/mavros_installation.html)
 
 - **git clone `offboard` to `catkin_ws/src/` and build `catkin build`**
 
-## usage
+## III. Usage
 
-### CONNECT TO PIXHAWK or RUN SIMUALTION
-#### on jetson (via ssh)
-- *connect jetson to pixhawk* 
+### 1. PRACTICE
+#### 1.0. ssh to jetson nano
+- `ssh ivsr-nano@192.168.x.x`
 
+- **run in each ground PC's terminal to connect Jetson**
+#### 1.1. connect to pixhawk 4 (terminal 1)
 - `roslaunch mavros px4.launch fcu_url:=/dev/ttyTHS1:921600`
-#### run simulation
-- `roslaunch px4 mavros_posix_sitl.launch`
+ 
+- *change landing auto disarm parameter*: `pxh> param set COM_DISARM_LAND -1`
 
-#### change landing auto disarm parameter
-- `pxh> param set COM_DISARM_LAND -1`
-
-### AFTER CONNECTED TO PIXHAWK or RUN SIMULATION, RUN:
-#### hovering node
+#### 1.3. run code on jetson (terminal 2)
+##### **run 1.3.1 or 1.3.2 with each difference purpose**
+##### 1.3.1. hovering node
 - *run hover_node*                 : `rosrun offboard hover`
 - **check current position on screen**
 
@@ -45,17 +45,36 @@
   
 - **on remote controller** switch to ARM, then switch flight mode to OFFBOARD
 
-  on simualation: `rosrun offboard setmode_offb`
-### OR:
-#### offboard node
+##### 1.3.2. offboard node
 - *run offboard_node*                 : `rosrun offboard offboard`
 - **manual input or load input from waypoints.yaml config file**
   
 - **on remote controller** switch to ARM, then switch flight mode to OFFBOARD
 
-  on simualation: `rosrun offboard setmode_offb`
 - simualate detected human by change `trigger` parameter in waypoints.yaml configure file from `false` to `true`
 
-### RUN LOGGING NODE ALONG
-#### logging node
+##### **after complete, re-change landing auto disarm parameter**
+- `pxh> param set COM_DISARM_LAND 2`
+
+### 2. SIMULATION
+#### 2.1. run px4 simulation in gazebo 
+- `roslaunch px4 mavros_posix_sitl.launch`
+#### 2.2. run code
+##### 2.2.1. hovering node
+- *run hover_node*                 : `rosrun offboard hover`
+- **check current position on screen**
+
+  **input target height for hovering (in meter): z**
+
+- *ARM and switch to OFFBOARD mode*: `rosrun offboard setmode_offb`
+
+##### 2.2.2. offboard node
+- *run offboard_node*                 : `rosrun offboard offboard`
+- **manual input or load input from waypoints.yaml config file**
+
+- *ARM and switch to OFFBOARD mode*: `rosrun offboard setmode_offb`
+
+- simualate detected human by change `trigger` parameter in waypoints.yaml configure file from `false` to `true`
+
+### 3. RUN LOGGING ALONG
 - *run logging_node*                 : `rosrun offboard logging`
