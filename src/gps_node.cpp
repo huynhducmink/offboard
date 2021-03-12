@@ -47,26 +47,12 @@ int main(int argc, char **argv)
         rate.sleep();
     }
     std::cout << "[ INFO] GPS position received \n";
-    ros::Duration(1).sleep();
-
-    std::cout << "[ INFO] Checking status... \n";
-    for(int i = 100; ros::ok() && i > 0; --i)
-    {
-        ros::spinOnce();
-        rate.sleep();
-    }
-    ROS_INFO_ONCE("\n Current GPS position: [%f, %f, %.3f]", 
-                        global_position.latitude, 
-                        global_position.longitude, 
-                        global_position.altitude);
-    std::cout << "[ INFO] Status checked \n";
 
     // set target position
     input_global_target();
     goal_position.pose.position.latitude = t_latitude;
     goal_position.pose.position.longitude = t_longitude;
     goal_position.pose.position.altitude = t_altitude;
-    t_altitude = t_altitude + global_position.altitude;
 
     geometry_msgs::PoseStamped takeoff_pose;
     takeoff_pose.pose.position.x = 0;
