@@ -20,7 +20,7 @@ bool final_check_ = true;
 bool target_pub_check_ = false;
 mavros_msgs::State current_state_; // check connection to pixhawk
 geometry_msgs::PoseStamped current_pose_; // current local position 
-geometry_msgs::PoseStamped target_pub_pose;
+geometry_msgs::PoseStamped target_pub_pose; 
 std_msgs::Float64 check_error_;
 geometry_msgs::PoseStamped targetTransfer(double x, double y, double z);
 
@@ -49,9 +49,11 @@ private:
 
     mavros_msgs::SetMode set_mode_; // set OFFBOARD mode in simulation
     geometry_msgs::PoseStamped target_pose_; // target local setpoint
+    geometry_msgs::PoseStamped setpoint_pose_;
     double z_target = 5;
     double t_hover_ = 30;
 	double t_land_ = 10;
+    double t_stable_ = 10;
     float check = 0.1;
     bool check_position(float error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target);
 

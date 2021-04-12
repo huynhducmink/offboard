@@ -1,4 +1,4 @@
-#include <offboard/offboard.h>
+#include "offboard/offboard.h"
 
 OffboardControl::OffboardControl()
 {
@@ -114,7 +114,7 @@ void OffboardControl::landing(geometry_msgs::PoseStamped setpoint, ros::Rate rat
                 rate.sleep();
             }
         }
-        else if (check_land && final_check_)
+        if (check_land && final_check_)
         {
             set_mode_.request.custom_mode = "AUTO.LAND";
             if( set_mode_client_.call(set_mode_) && set_mode_.response.mode_sent)
@@ -122,11 +122,8 @@ void OffboardControl::landing(geometry_msgs::PoseStamped setpoint, ros::Rate rat
                 std::printf("[ INFO] --------------- LAND ---------------\n");
             }
         }
-        else
-        {
-            ros::spinOnce();
-            rate.sleep();
-        }
+        ros::spinOnce();
+        rate.sleep();
     }
 }
 
@@ -177,43 +174,51 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
     
     takeOff(rate);
 
-		while (ros::ok())
+    bool check_setpoint_ = false;
+    setpoint_pose_ = target_pub_pose;
+	while (ros::ok() && !check_setpoint_)
+    {
+        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        
+        std::printf("\nsetpoint: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+        vel_ = vel_limit(current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        target_pose_.pose.position.x = current_pose_.pose.position.x + vel_[0];
+        target_pose_.pose.position.y = current_pose_.pose.position.y + vel_[1];
+        target_pose_.pose.position.z = current_pose_.pose.position.z + vel_[2];
+
+        target_pose_.header.stamp = ros::Time::now();
+        local_pos_pub_.publish(target_pose_);
+            
+        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        bool check = (check_error_.data < 0.15) ? true:false;
+        std::cout << "\n" << check << std::endl;
+        if(check_setpoint_ && check)
         {
-                vel_ = vel_limit(current_pose_, targetTransfer(target_pub_pose.pose.position.x, target_pub_pose.pose.position.x, z_target));
-                target_pose_.pose.position.x = current_pose_.pose.position.x + vel_[0];
-                target_pose_.pose.position.y = current_pose_.pose.position.y + vel_[1];
-                target_pose_.pose.position.z = current_pose_.pose.position.z + vel_[2];
+            geometry_msgs::PoseStamped setpoint_land;
+            setpoint_land = target_pub_pose;
+            std::printf("[ INFO] Reached FINAL position: [%.3f, %.3f, %.3f]\n", 
+                        current_pose_.pose.position.x, current_pose_.pose.position.y, current_pose_.pose.position.z);
 
-                target_pose_.header.stamp = ros::Time::now();
-                local_pos_pub_.publish(target_pose_);
+            std::cout << "\n[ INFO] ----- Hovering - Ready to LAND\n";
+            hover(t_land_, targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
 
-            // bool check = check_position(check_error_, current_pose_, targetTransfer(target_pub_pose.pose.position.x, target_pub_pose.pose.position.x, z_target));
-            bool check = (check_error_.data < 0.15) ? true:false;
-            std::cout << "\n" << check << std::endl;
-            if(check)
-            {
-				geometry_msgs::PoseStamped setpoint_land;
-				setpoint_land = target_pub_pose;
-                std::printf("[ INFO] Reached FINAL position: [%.3f, %.3f, %.3f]\n", 
-                                current_pose_.pose.position.x, 
-                                current_pose_.pose.position.y, 
-                                current_pose_.pose.position.z);
-
-                std::cout << "\n[ INFO] ----- Hovering - Ready to LAND\n";
-                hover(t_land_, targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
-
-                landing(targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
-                break;
-                
-                ros::spinOnce();
-    		    rate.sleep();
-            }
-    		else 
-    		{
-    			ros::spinOnce();
-    		    rate.sleep();
-    		} 
+            landing(targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
+            break;
         }
+        else if (check_setpoint_ && !check)
+        {
+            hover(t_stable_, current_pose_ , rate);
+            check_setpoint_ = false;
+            setpoint_pose_ = target_pub_pose;
+        }
+        else
+        {
+            std::printf("\nNOT reached setpoint [%.3f, %.3f, %.3f", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+        }
+        
+    	ros::spinOnce();
+    	rate.sleep(); 
+    }
 }
 
 std::vector<double> OffboardControl::vel_limit(geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)

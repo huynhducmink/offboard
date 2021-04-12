@@ -59,7 +59,6 @@ target_link_libraries(setmode_offb
   offboard_lib
 )
 catkin_install_python(PROGRAMS
-#   scripts/my_python_script
    scripts/offboard_position.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
