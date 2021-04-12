@@ -1,377 +1,282 @@
 #include <offboard/offboard.h>
-#include <offboard/logging.h>
 
-/****** FUNCTIONS ******/
-bool check_position(float error, double target_x, double target_y, double target_z,
-					double currentx, double currenty, double currentz)
+OffboardControl::OffboardControl()
 {
-	bool reached;
-	if(((target_x - error) < currentx)
-	&& (currentx < (target_x + error)) 
-	&& ((target_y - error) < currenty)
-	&& (currenty < (target_y + error))
-	&& ((target_z - error) < currentz)
-	&& (currentz < (target_z + error)))
-	{
-		reached = 1;
-	}
-	else
-	{
-		reached = 0;
-	}
-	return reached;
+	// constructor
 }
 
-bool check_orientation(double target_x, double target_y, double target_z, double target_w,
-					   double currentx, double currenty, double currentz, double currentw)
+void state_cb(const mavros_msgs::State::ConstPtr& msg)
 {
-	bool reached;
-	// tf Quaternion to RPY
-	tf::Quaternion qc(currentx,
-					  currenty,
-					  currentz,
-					  currentw);
-	tf::Matrix3x3 mc(qc);
-	double rc, pc, yc;
-	mc.getRPY(rc, pc, yc);
-
-	tf::Quaternion qt(target_x,
-					  target_y,
-					  target_z,
-					  target_w);
-	tf::Matrix3x3 mt(qt);
-	double rt, pt, yt;
-	mt.getRPY(rt, pt, yt);
-	// check
-	if((((degree(rt)-1)<(degree(rc)))&&(degree(rc)<(degree(rt)+1)))
-	 &&(((degree(pt)-1)<(degree(pc)))&&(degree(pc)<(degree(pt)+1)))
-	 &&(((degree(yt)-1)<(degree(yc)))&&(degree(yc)<(degree(yt)+1)))) 
-	{
-		reached = 1;
-	}
-	else
-	{
-		reached = 0;
-	}
-	return reached;
+    current_state_ = *msg;
+}
+void localPose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    current_pose_ = *msg;
+}
+void target_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    target_pub_pose = *msg;
+	target_pub_check_ = true;
+}
+void error_cb(const std_msgs::Float64::ConstPtr& msg)
+{
+    check_error_ = *msg;
 }
 
-bool check_global(double lat, double lon, double alt,
-				double lat0, double lon0, double alt0)
+
+void OffboardControl::takeOff(ros::Rate rate)
 {
-	bool reached;
-	if(
-		((lat - 0.000001) < lat0)
-	 && (lat0 < (lat + 0.000001)) 
-	 && ((lon - 0.000001) < lon0)
-	 && (lon0 < (lon + 0.000001))
-	 && ((alt - 0.1) < alt0)
-	 && (alt0 < (alt + 0.1))
-	)
-	{
-		reached = 1;
-	}
-	else
-	{
-		reached = 0;
-	}
-	return reached;
-}
-
-void input_local_target()
-{
-	std::cout << "Input Local position(s)" << std::endl;
-	std::cout << "Number of target(s): "; std::cin >> target_num;
-	for (int i = 0; i < target_num; i++)
-	{
-		std::cout << "Target (" << i+1 << ") position (in meter):" <<std::endl; 
-		std::cout << "pos_x_" << i+1 << ": "; std::cin >> target_pos[i][0];
-		std::cout << "pos_y_" << i+1 << ": "; std::cin >> target_pos[i][1];
-		std::cout << "pos_z_" << i+1 << ": "; std::cin >> target_pos[i][2];
-		// updates_local(i, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
-		// std::cout << "Target (" << i+1 << ") orientation (in degree):" <<std::endl; 
-		target_pos[i][3] = 0;
-		target_pos[i][4] = 0;
-		target_pos[i][5] = 0;
-		// std::cout << "yaw_" << i+1 << ":"; std::cin >> target_pos[i][5];
-	}
-	std::cout << "Check error value (0 < and < 1m): "; std::cin >> check_error;
-	if (check_error < 0 || check_error > 1) 
-	{
-		std::cout << "That error is out of range, set to default (0.1 m)" << std::endl;
-		check_error = 0.1;
-	}
-}
-
-void input_global_target()
-{
-	std::cout << "Input GPS position(s)" << std::endl;
-	std::cout << "Number of goal(s): "; std::cin >> goal_num;
-	for (int i = 0; i < goal_num; i++)
-	{
-		std::cout << "Goal ("<< i+1 <<") position:" << std::endl;
-		std::cout << "Latitude  " << i+1 << " (in degree): "; std::cin >> goal_pos[i][0];
-		std::cout << "Longitude " << i+1 << " (in degree): "; std::cin >> goal_pos[i][1];
-		std::cout << "Altitude  " << i+1 << "  (in meter): "; std::cin >> goal_pos[i][2];
-		// updates_global(i, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
-	}
-	std::cout << "Check error value (0 < and < 1m): "; std::cin >> check_error;
-	if (check_error < 0 || check_error > 1) 
-	{
-		std::cout << "That error is out of range, set to default (0.1 m)" << std::endl;
-		check_error = 0.1;
-	}
-}
-
-void input_target()
-{
-	char c;
-	std::cout << "Manual Input (1) || Load Parameter (2) ? (1/2)\n"; std::cin >> c;
-	if (c == '1')
-	{
-		std::cout << "Waypoint type: (3) Local || (4) Global ? (3/4) \n"; std::cin >> c;
-		if (c == '3')
-		{
-			input_local_target();
-			input_type = true;
-		}
-		else if (c == '4')
-		{
-			input_global_target();
-			input_type = false;
-		}
-		else input_target();
-
-	}
-	else if (c == '2')
-	{
-		system("rosparam load $HOME/ros/catkin_ws/src/offboard/config/waypoints.yaml");
-    	std::cout << "[ INFO] Load parameters" << std::endl;
-		ros::param::get("num_of_target", in_num_of_target);
-		ros::param::get("x_pos", in_x_pos);
-		ros::param::get("y_pos", in_y_pos);
-		ros::param::get("z_pos", in_z_pos);
-		ros::param::get("target_error", local_error);
-		ros::param::get("num_of_goal", in_num_of_goal);
-		ros::param::get("latitude", in_latitude);
-		ros::param::get("longitude", in_longitude);
-		ros::param::get("altitude", in_altitude);
-		ros::param::get("goal_error", global_error);
-
-		std::cout << "Waypoint type: (3) Local || (4) Global ? (3/4) \n"; std::cin >> c;
-		if (c == '3')
-		{
-			input_type = true;
-			check_error = local_error;
-			target_num = in_num_of_target;
-			for (int i = 0; i < target_num; i++)
-			{
-				target_pos[i][0] = in_x_pos[i];
-				target_pos[i][1] = in_y_pos[i];
-				target_pos[i][2] = in_z_pos[i];
-				std::cout << "Target (" << i+1 << "): [" << target_pos[i][0] << ", "
-														 << target_pos[i][1] << ", "
-														 << target_pos[i][2] << "]" << std::endl;
-				// updates_local(i+1, target_pos[i][0], target_pos[i][1], target_pos[i][2]);
-			}
-			std::cout << "Check error value: " << check_error << std::endl;
-		}
-		else if (c == '4')
-		{
-			input_type = false;
-			check_error = global_error;
-			goal_num = in_num_of_goal;
-			for (int i = 0; i < goal_num; i++)
-			{
-				goal_pos[i][0] = in_latitude[i];
-				goal_pos[i][1] = in_longitude[i];
-				goal_pos[i][2] = in_altitude[i];
-				// updates_global(i+1, goal_pos[i][0], goal_pos[i][1], goal_pos[i][2]);
-				// std::cout << "Goal (" << i+1 << "): [" 
-				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][0] << ", "
-				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][1] << ", "
-				// 		  << std::fixed << std::setprecision(8) << goal_pos[i][2] << "]" << std::endl;
-				std::printf("Goal (%d): [%.8f, %.8f, %.3f]\n", i+1,
-                                goal_pos[i][0], 
-                                goal_pos[i][1], 
-                                goal_pos[i][2]);
-			}
-			std::cout << "Check error value: " << check_error << std::endl;
-		}
-		else input_target();
-	}
-	else 
-	{
-		input_target();
-	}
-	
-}
-
-double degree(double rad)
-{
-	double radian_to_degree = (rad*180)/PI;
-	return radian_to_degree;
-}
-
-double radian(double deg)
-{
-	double degree_to_radian = (deg*PI)/180;
-	return degree_to_radian;
-}
-
-double measureGPS(double lat1, double lon1, double alt1, 
-				  double lat2, double lon2, double alt2)
-{
-	double flat, plus, Distance;
-	lat1 = radian(lat1); lon1 = radian(lon1);
-	lat2 = radian(lat2); lon2 = radian(lon2);
-	flat = 2*eR*asin(sqrt(sin((lat2-lat1)/2)*sin((lat2-lat1)/2)
-	       +cos(lat1)*cos(lat2)*sin((lon2-lon1)/2)*sin((lon2-lon1)/2)))*1000; //m
-	alt1 = abs(alt1);
-	alt2 = abs(alt2);
-	if (alt1 == alt2)
-	{
-		Distance = flat;
-	}
-	else
-	{
-		if 	(alt1 > alt2)
-		{
-			plus = flat/((alt1/alt2)-1);
-			Distance = sqrt((flat+plus)*(flat+plus) + alt1*alt1) 
-					   - sqrt(plus*plus + alt2*alt2);
-		}
-		else
-		{
-			plus = flat/((alt2/alt1)-1);
-			Distance = sqrt((flat+plus)*(flat+plus) + alt2*alt2) 
-					   - sqrt(plus*plus + alt1*alt1);
-		}
-	}
-	return Distance;
-}
-
-double distanceLocal(double x1, double y1, double z1, double x2, double y2, double z2)
-{
-	return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2));
-}
-
-geometry_msgs::Point WGS84ToECEF(double lat, double lon, double alt)
-{
-    geometry_msgs::Point ecef;
-    double lambda = radian(lat);
-    double phi = radian(lon);
-    double s = sin(lambda);
-    double N = a / sqrt(1 - e_sq * s * s);
-
-    double sin_lambda = sin(lambda);
-    double cos_lambda = cos(lambda);
-    double cos_phi = cos(phi);
-    double sin_phi = sin(phi);
-
-    ecef.x = (alt + N) * cos_lambda * cos_phi;
-    ecef.y = (alt + N) * cos_lambda * sin_phi;
-    ecef.z = (alt + (1 - e_sq) * N) * sin_lambda;
-
-    return ecef;
-}
-
-geographic_msgs::GeoPoint ECEFToWGS84(double x, double y, double z)
-{
-    geographic_msgs::GeoPoint wgs84;
-    double eps = e_sq / (1.0 - e_sq);
-    double p = sqrt(x * x + y * y);
-    double q = atan2((z * a), (p * b));
-    double sin_q = sin(q);
-    double cos_q = cos(q);
-    double sin_q_3 = sin_q * sin_q * sin_q;
-    double cos_q_3 = cos_q * cos_q * cos_q;
-    double phi = atan2((z + eps * b * sin_q_3), (p - e_sq * a * cos_q_3));
-    double lambda = atan2(y, x);
-    double v = a / sqrt(1.0 - e_sq * sin(phi) * sin(phi));
+    geometry_msgs::PoseStamped take_off_;
+    take_off_.pose.position.x = current_pose_.pose.position.x;
+    take_off_.pose.position.y = current_pose_.pose.position.y;
+    take_off_.pose.position.z = z_target;
+    std::cout << "[ INFO] ----- Takeoff \n";
     
-    wgs84.altitude = (p / cos(phi)) - v;
-
-    wgs84.latitude = degree(phi);
-    wgs84.longitude = degree(lambda);
-
-    return wgs84;
+    bool check_takeoff = false;
+    while (ros::ok())
+    {
+        take_off_.header.stamp = ros::Time::now();
+        local_pos_pub_.publish(take_off_);
+        
+        check_takeoff = check_position(check, current_pose_, take_off_);
+        if (check_takeoff)
+        {
+            std::cout << "[ INFO] ----- Hovering \n";
+			while (!target_pub_check_)
+			{
+				hover(t_hover_, take_off_, rate);
+				std::cout << "no target detected\n";
+			}
+			std::cout << "[ INFO] --------------- FLY --------------- \n";
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
 }
 
-geometry_msgs::Point ECEFToENU(double x, double y, double z,
-                               double lat0, double lon0, double alt0)
+void OffboardControl::hover(double time, geometry_msgs::PoseStamped target, ros::Rate rate)
 {
-    geometry_msgs::Point enu;
-    double lambda = radian(lat0);
-    double phi = radian(lon0);
-    double s = sin(lambda);
-    double N = a / sqrt(1 - e_sq * s * s);
+    ros::Time t_check_;
+    t_check_ = ros::Time::now();
 
-    double sin_lambda = sin(lambda);
-    double cos_lambda = cos(lambda);
-    double cos_phi = cos(phi);
-    double sin_phi = sin(phi);
+    while ((ros::Time::now() - t_check_) < ros::Duration(time))
+    {
+        local_pos_pub_.publish(target);
 
-    double x0 = (alt0 + N) * cos_lambda * cos_phi;
-    double y0 = (alt0 + N) * cos_lambda * sin_phi;
-    double z0 = (alt0 + (1 - e_sq) * N) * sin_lambda;
-
-    double xd, yd, zd;
-    xd = x - x0;
-    yd = y - y0;
-    zd = z - z0;
-
-    enu.x = -sin_phi * xd + cos_phi * yd;
-    enu.y = -cos_phi * sin_lambda * xd - sin_lambda * sin_phi * yd + cos_lambda * zd;
-    enu.z = cos_lambda * cos_phi * xd + cos_lambda * sin_phi * yd + sin_lambda * zd;
-
-    return enu;
+        ros::spinOnce();
+    	rate.sleep();
+    }
 }
 
-geometry_msgs::Point ENUToECEF(double xEast, double yNorth, double zUp,
-                                double lat0, double lon0, double alt0)
+void OffboardControl::landing(geometry_msgs::PoseStamped setpoint, ros::Rate rate)
 {
-    geometry_msgs::Point ecef;
-    double lambda = radian(lat0);
-    double phi = radian(lon0);
-    double s = sin(lambda);
-    double N = a / sqrt(1 - e_sq * s * s);
+    bool check_land = false;
+    std::cout << "\n[ INFO] ----- Descending \n";
+    while (ros::ok() && !check_land)
+    {
+        std::vector<double> v_land_ = vel_limit(current_pose_, targetTransfer(setpoint.pose.position.x, setpoint.pose.position.y, 0));
 
-    double sin_lambda = sin(lambda);
-    double cos_lambda = cos(lambda);
-    double cos_phi = cos(phi);
-    double sin_phi = sin(phi);
+        target_pose_.pose.position.x = current_pose_.pose.position.x + v_land_[0];
+        target_pose_.pose.position.y = current_pose_.pose.position.y + v_land_[1];
+        target_pose_.pose.position.z = current_pose_.pose.position.z + v_land_[2];
 
-    double x0 = (alt0 + N) * cos_lambda * cos_phi;
-    double y0 = (alt0 + N) * cos_lambda * sin_phi;
-    double z0 = (alt0 + (1 - e_sq) * N) * sin_lambda;
+        target_pose_.header.stamp = ros::Time::now();
+        local_pos_pub_.publish(target_pose_);
+            
+        std::printf("----- Descending - %.3f (m)\n", current_pose_.pose.position.z);
+        check_land = check_position(check, current_pose_, targetTransfer(setpoint.pose.position.x, setpoint.pose.position.y, 0));
+        if (check_land && !final_check_)
+        {
+            std::cout << "[ INFO] ----- Unpacking \n";
+            hover(t_hover_, targetTransfer(setpoint.pose.position.x, setpoint.pose.position.y, 0), rate);
+            std::cout << "[ INFO] Unpacked\n";
 
-    double xd = -sin_phi * xEast - cos_phi * sin_lambda * yNorth + cos_lambda * cos_phi * zUp;
-    double yd = cos_phi * xEast - sin_lambda * sin_phi * yNorth + cos_lambda * sin_phi * zUp;
-    double zd = cos_lambda * yNorth + sin_lambda * zUp;
+            std::cout << "[ INFO] ----- Return setpoint\n";
+            bool check_return = false;
+            while (ros::ok() && !check_return)
+            {
+                std::vector<double> v_return_ = vel_limit(current_pose_, setpoint); 
+                target_pose_.pose.position.x = current_pose_.pose.position.x + v_return_[0];
+                target_pose_.pose.position.y = current_pose_.pose.position.y + v_return_[1];
+                target_pose_.pose.position.z = current_pose_.pose.position.z + v_return_[2];
 
-    ecef.x = xd + x0;
-    ecef.y = yd + y0;
-    ecef.z = zd + z0;
+                target_pose_.header.stamp = ros::Time::now();
+                local_pos_pub_.publish(target_pose_);
 
-    return ecef;
+                std::printf("----- Ascending - %.3f (m)/ %.3f\n", current_pose_.pose.position.z, setpoint.pose.position.z);
+                check_return = check_position(check, current_pose_, setpoint);
+                if (check_return)
+                {
+                    std::cout << "[ INFO] ----- Hovering \n";
+                    hover(t_hover_, setpoint, rate);
+                }
+                ros::spinOnce();
+                rate.sleep();
+            }
+        }
+        else if (check_land && final_check_)
+        {
+            set_mode_.request.custom_mode = "AUTO.LAND";
+            if( set_mode_client_.call(set_mode_) && set_mode_.response.mode_sent)
+            {
+                std::printf("[ INFO] --------------- LAND ---------------\n");
+            }
+        }
+        else
+        {
+            ros::spinOnce();
+            rate.sleep();
+        }
+    }
 }
 
-geometry_msgs::Point WGS84ToENU(double lat, double lon, double alt,
-                                double lat0, double lon0, double alt0)
+void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
 {
-    geometry_msgs::Point ecef = WGS84ToECEF(lat, lon, alt);
-    geometry_msgs::Point enu = ECEFToENU(ecef.x, ecef.y, ecef.z,
-                                        lat0, lon0, alt0);
-    return enu;
+    nh_ = nh;
+	state_sub_ = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
+	local_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, localPose_cb);
+    target_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/target_position", 10, target_cb);
+    error_sub_ = nh_.subscribe<std_msgs::Float64>("/check_error_pos", 10, error_cb);
+	
+    local_pos_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+
+	set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
+	arming_client_ = nh_.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
+    
+    // wait for FCU connection
+    std::cout << "[ INFO] ----- Waiting for FCU connection \n";
+    while(ros::ok() && !current_state_.connected)
+	{
+        ros::spinOnce();
+        rate.sleep();
+    }
+    std::cout << "[ INFO] FCU connected \n";
+
+    target_pose_.pose.position.x = target_pub_pose.pose.position.x;
+    target_pose_.pose.position.y = target_pub_pose.pose.position.y;
+    target_pose_.pose.position.z = z_target;
+
+    // send a few setpoints before starting
+    std::cout << "[ INFO] ----- Setting OFFBOARD stream \n";
+    for(int i = 100; ros::ok() && i > 0; --i)
+    {
+        target_pose_.header.stamp = ros::Time::now();
+        local_pos_pub_.publish(target_pose_);
+        ros::spinOnce();
+        rate.sleep();
+    }
+    std::cout << "[ INFO] Set OFFBOARD stream done \n";
+
+    std::cout << "[ INFO] ----- Waiting OFFBOARD switch \n";
+    while (ros::ok() && !current_state_.armed && (current_state_.mode != "OFFBOARD"))
+    {
+        ros::spinOnce();
+        rate.sleep();
+    }
+    std::cout << "[ INFO] --------------- READY --------------- \n";
+    
+    takeOff(rate);
+
+		while (ros::ok())
+        {
+                vel_ = vel_limit(current_pose_, targetTransfer(target_pub_pose.pose.position.x, target_pub_pose.pose.position.x, z_target));
+                target_pose_.pose.position.x = current_pose_.pose.position.x + vel_[0];
+                target_pose_.pose.position.y = current_pose_.pose.position.y + vel_[1];
+                target_pose_.pose.position.z = current_pose_.pose.position.z + vel_[2];
+
+                target_pose_.header.stamp = ros::Time::now();
+                local_pos_pub_.publish(target_pose_);
+
+            // bool check = check_position(check_error_, current_pose_, targetTransfer(target_pub_pose.pose.position.x, target_pub_pose.pose.position.x, z_target));
+            bool check = (check_error_.data < 0.15) ? true:false;
+            std::cout << "\n" << check << std::endl;
+            if(check)
+            {
+				geometry_msgs::PoseStamped setpoint_land;
+				setpoint_land = target_pub_pose;
+                std::printf("[ INFO] Reached FINAL position: [%.3f, %.3f, %.3f]\n", 
+                                current_pose_.pose.position.x, 
+                                current_pose_.pose.position.y, 
+                                current_pose_.pose.position.z);
+
+                std::cout << "\n[ INFO] ----- Hovering - Ready to LAND\n";
+                hover(t_land_, targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
+
+                landing(targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
+                break;
+                
+                ros::spinOnce();
+    		    rate.sleep();
+            }
+    		else 
+    		{
+    			ros::spinOnce();
+    		    rate.sleep();
+    		} 
+        }
 }
 
-geographic_msgs::GeoPoint ENUToWGS84(double xEast, double yNorth, double zUp,
-                                      double lat0, double lon0, double alt0)
+std::vector<double> OffboardControl::vel_limit(geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)
 {
-    geometry_msgs::Point ecef = ENUToECEF(xEast, yNorth, zUp,
-                                          lat0, lon0, alt0);
-    geographic_msgs::GeoPoint wgs84 = ECEFToWGS84(ecef.x, ecef.y, ecef.z);
+    double xc = current.pose.position.x;
+    double yc = current.pose.position.y;
+    double zc = current.pose.position.z;
 
-    return wgs84;
+    double xt = target.pose.position.x;
+    double yt = target.pose.position.y;
+    double zt = target.pose.position.z;
+
+    double dx = xt - xc;
+    double dy = yt - yc;
+    double dz = zt - zc;
+
+    double d = sqrt(dx*dx + dy*dy + dz*dz);
+
+    std::vector<double> vel;
+    if (!vel.empty())
+    {
+        vel.clear();
+    }
+    vel_desired_ = 0.2;   
+    
+    vel.push_back((dx/d) * vel_desired_);
+    vel.push_back((dy/d) * vel_desired_);
+    vel.push_back((dz/d) * vel_desired_);
+
+    return vel;
+}
+
+bool OffboardControl::check_position(float error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)
+{
+	double xt = target.pose.position.x;
+	double yt = target.pose.position.y;
+	double zt = target.pose.position.z;
+	double xc = current.pose.position.x;
+	double yc = current.pose.position.y;
+	double zc = current.pose.position.z;
+
+	if(((xt - error) < xc) && (xc < (xt + error)) 
+	&& ((yt - error) < yc) && (yc < (yt + error))
+	&& ((zt - error) < zc) && (zc < (zt + error)))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+geometry_msgs::PoseStamped targetTransfer(double x, double y, double z)
+{
+    geometry_msgs::PoseStamped target;
+    target.pose.position.x = x;
+    target.pose.position.y = y;
+    target.pose.position.z = z;
+    return target;
+}
+
+OffboardControl::~OffboardControl()
+{
+	// destructor
 }

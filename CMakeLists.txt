@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  roslaunch
 )
 
 catkin_package(
@@ -33,40 +34,32 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+roslaunch_add_file_check(launch)
+
 add_library(
   offboard_lib
   src/offboard_lib.cpp
-)
-add_library(
-  logging_lib
-  src/logging_lib.cpp
 )
 
 target_link_libraries(offboard_lib
   ${catkin_LIBRARIES}
 )
-target_link_libraries(logging_lib
-  ${catkin_LIBRARIES}
-)
 
 add_executable(offboard src/offboard_node.cpp)
 add_executable(hover src/hover_node.cpp)
-add_executable(logging src/logging_node.cpp)
 add_executable(setmode_offb src/setmode_offb.cpp)
 
 target_link_libraries(offboard
   offboard_lib
-  logging_lib
 )
 target_link_libraries(hover
   offboard_lib
-  logging_lib
-)
-target_link_libraries(logging
-  offboard_lib
-  logging_lib
 )
 target_link_libraries(setmode_offb
   offboard_lib
-  logging_lib
+)
+catkin_install_python(PROGRAMS
+#   scripts/my_python_script
+   scripts/offboard_position.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
