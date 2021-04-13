@@ -33,7 +33,7 @@ void OffboardControl::takeOff(ros::Rate rate)
     std::cout << "[ INFO] ----- Takeoff \n";
     
     bool check_takeoff = false;
-    while (ros::ok())
+    while (ros::ok() && !check_takeoff)
     {
         take_off_.header.stamp = ros::Time::now();
         local_pos_pub_.publish(take_off_);
@@ -45,7 +45,7 @@ void OffboardControl::takeOff(ros::Rate rate)
 			while (!target_pub_check_)
 			{
 				hover(t_hover_, take_off_, rate);
-				std::cout << "no target detected\n";
+				std::cout << "[ INFO] no target detected\n";
 			}
 			std::cout << "[ INFO] --------------- FLY --------------- \n";
         }
@@ -180,7 +180,7 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
     {
         check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
         
-        std::printf("\nsetpoint: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+        std::printf("\n--- setpoint: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
         vel_ = vel_limit(current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
         target_pose_.pose.position.x = current_pose_.pose.position.x + vel_[0];
         target_pose_.pose.position.y = current_pose_.pose.position.y + vel_[1];
@@ -190,8 +190,8 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
         local_pos_pub_.publish(target_pose_);
             
         check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
-        bool check = (check_error_.data < 0.15) ? true:false;
-        std::cout << "\n" << check << std::endl;
+        bool check = (check_error_.data < 0.2) ? true:false;
+        std::cout << "--- check setpoint: " << check_setpoint_ << "\n" << std::endl;
         if(check_setpoint_ && check)
         {
             geometry_msgs::PoseStamped setpoint_land;
@@ -207,13 +207,15 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
         }
         else if (check_setpoint_ && !check)
         {
+			std::printf("--- check setpoint, not check error\n");
+			std::printf("--- setpoint - !check: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
             hover(t_stable_, current_pose_ , rate);
             check_setpoint_ = false;
             setpoint_pose_ = target_pub_pose;
         }
         else
         {
-            std::printf("\nNOT reached setpoint [%.3f, %.3f, %.3f", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+            std::printf("NOT reached setpoint [%.3f, %.3f, %.3f]\n ", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
         }
         
     	ros::spinOnce();

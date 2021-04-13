@@ -80,7 +80,7 @@ class MarkerDetector():
             corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, self.dict, parameters=self.param)
 
             if np.all(ids is not None):
-                ret1 = aruco.estimatePoseSingleMarkers(corners=corners, markerLength=0.2,
+                ret1 = aruco.estimatePoseSingleMarkers(corners=corners, markerLength=0.4,
                                                        cameraMatrix=self.mtx, distCoeffs=self.dist)
                 rvec, tvec = ret1[0][0, 0, :], ret1[1][0, 0, :]
                 # -- Draw the detected marker and put a reference frame over it
@@ -127,8 +127,8 @@ class MarkerDetector():
                     check_err = np.linalg.norm([tvec2[0][0], tvec2[1][0]])
                     self.check_error_pos.publish(check_err)
                     self.rate.sleep()
-                    #str_position0 = "Marker Position in Camera frame: x=%f  y=%f " % (tvec2[0][0], tvec2[1][0])
-                    #cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                    # str_position0 = "Marker Position in Camera frame: x=%f  y=%f " % (tvec2[0][0], tvec2[1][0])
+                    # cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
                 else:
                     # check_err = np.linalg.norm([tvec[0], tvec[1]])
                     # self.check_error_pos.publish(check_err)
@@ -138,7 +138,7 @@ class MarkerDetector():
                     # setpose[1] = -tvec[0]
                     # setpose[2] = -tvec[2]
                     # # change form
-                    rotMat = tr.euler_matrix(0, 0, self.local_pos[3])
+                    rotMat = tf.transformations.euler_matrix(0, 0, self.local_pos[3])
                     rotMat = np.matmul(rotMat, self.imu_cam)
                     # rotMat = rotMat[0:3, 0:3]
                     tvec2 = np.matmul(rotMat, tvec1)
@@ -167,8 +167,8 @@ class MarkerDetector():
                     self.check_error_pos.publish(check_err)
                     self.rate.sleep()
 
-#            cv2.imshow("frame", frame)
- #           cv2.waitKey(1)
+            # cv2.imshow("frame", frame)
+            # cv2.waitKey(1)
             #self.rate.sleep()
 
 
