@@ -45,7 +45,7 @@ void OffboardControl::takeOff(ros::Rate rate)
 			while (!target_pub_check_)
 			{
 				hover(t_hover_, take_off_, rate);
-				std::cout << "[ INFO] no target detected\n";
+				std::cout << "[ INFO] NO target \n";
 			}
 			std::cout << "[ INFO] --------------- FLY --------------- \n";
         }
@@ -130,12 +130,12 @@ void OffboardControl::landing(geometry_msgs::PoseStamped setpoint, ros::Rate rat
 void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
 {
     nh_ = nh;
-	state_sub_ = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
-	local_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, localPose_cb);
-    target_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/target_position", 10, target_cb);
-    error_sub_ = nh_.subscribe<std_msgs::Float64>("/check_error_pos", 10, error_cb);
+	state_sub_ = nh_.subscribe<mavros_msgs::State>("mavros/state", 100, state_cb);
+	local_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 100, localPose_cb);
+    target_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/target_position", 100, target_cb);
+    error_sub_ = nh_.subscribe<std_msgs::Float64>("/check_error_pos", 100, error_cb);
 	
-    local_pos_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+    local_pos_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 100);
 
 	set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 	arming_client_ = nh_.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
@@ -149,8 +149,8 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
     }
     std::cout << "[ INFO] FCU connected \n";
 
-    target_pose_.pose.position.x = target_pub_pose.pose.position.x;
-    target_pose_.pose.position.y = target_pub_pose.pose.position.y;
+    target_pose_.pose.position.x = current_pose_.pose.position.x;
+    target_pose_.pose.position.y = current_pose_.pose.position.y;
     target_pose_.pose.position.z = z_target;
 
     // send a few setpoints before starting
@@ -178,10 +178,10 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
     setpoint_pose_ = target_pub_pose;
 	while (ros::ok() && !check_setpoint_)
     {
-        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, z_target));
         
-        std::printf("\n--- setpoint: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
-        vel_ = vel_limit(current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        std::printf("\nsetpoint: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+        vel_ = vel_limit(current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, z_target));
         target_pose_.pose.position.x = current_pose_.pose.position.x + vel_[0];
         target_pose_.pose.position.y = current_pose_.pose.position.y + vel_[1];
         target_pose_.pose.position.z = current_pose_.pose.position.z + vel_[2];
@@ -189,33 +189,33 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
         target_pose_.header.stamp = ros::Time::now();
         local_pos_pub_.publish(target_pose_);
             
-        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.x, z_target));
+        check_setpoint_ = check_position(check, current_pose_, targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, z_target));
         bool check = (check_error_.data < 0.2) ? true:false;
-        std::cout << "--- check setpoint: " << check_setpoint_ << "\n" << std::endl;
+        std::cout << "--- check setpoint: " << check_setpoint_ << "\n";
+        std::cout << "--- check error: " << check_error_.data << "\n";
         if(check_setpoint_ && check)
         {
             geometry_msgs::PoseStamped setpoint_land;
-            setpoint_land = target_pub_pose;
-            std::printf("[ INFO] Reached FINAL position: [%.3f, %.3f, %.3f]\n", 
+            setpoint_land = targetTransfer(setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, z_target);
+            std::printf("[ INFO] reached: [%.3f, %.3f, %.3f]\n", 
                         current_pose_.pose.position.x, current_pose_.pose.position.y, current_pose_.pose.position.z);
 
-            std::cout << "\n[ INFO] ----- Hovering - Ready to LAND\n";
-            hover(t_land_, targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
+            std::cout << "--- hovering - ready to LAND\n";
+            hover(t_land_, targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.y, z_target), rate);
 
-            landing(targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.x, z_target), rate);
+            landing(targetTransfer(setpoint_land.pose.position.x, setpoint_land.pose.position.y, z_target), rate);
             break;
         }
         else if (check_setpoint_ && !check)
         {
-			std::printf("--- check setpoint, not check error\n");
-			std::printf("--- setpoint - !check: [%.3f, %.3f, %.3f]\n", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+			std::printf("[ INFO] check setpoint, not check error\n");
             hover(t_stable_, current_pose_ , rate);
             check_setpoint_ = false;
             setpoint_pose_ = target_pub_pose;
         }
         else
         {
-            std::printf("NOT reached setpoint [%.3f, %.3f, %.3f]\n ", setpoint_pose_.pose.position.x, setpoint_pose_.pose.position.y, setpoint_pose_.pose.position.z);
+            std::printf("[ INFO] NOT check setpoint\n");
         }
         
     	ros::spinOnce();

@@ -51,9 +51,9 @@ private:
     geometry_msgs::PoseStamped target_pose_; // target local setpoint
     geometry_msgs::PoseStamped setpoint_pose_;
     double z_target = 5;
-    double t_hover_ = 15;
-	double t_land_ = 10;
-    double t_stable_ = 10;
+    double t_hover_ = 5;
+	double t_land_ = 5;
+    double t_stable_ = 5;
     float check = 0.1;
     bool check_position(float error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target);
 
