@@ -7,8 +7,7 @@
             },
             "includePath": [
                 "/opt/ros/melodic/include/**",
-                "/home/congtranv/ros/catkin_ws/devel/include/**",
-                "/home/congtranv/ros/catkin_ws/src/offboard/include/**",
+                "/home/congtranv/ros/git/offboard/include/**",
                 "/usr/include/**"
             ],
             "name": "ROS",
