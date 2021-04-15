@@ -5,9 +5,8 @@ from cv2 import aruco
 import numpy as np
 import rospy
 import mavros
-from geometry_msgs.msg import PoseStamped as PS
-#from mavros_msgs.msg import PositionTarget as PT
-from std_msgs.msg import Float64
+from mavros_msgs.msg import PositionTarget as PT
+from std_msgs.msg import Float32
 from mavros import setpoint as SP
 import tf
 
@@ -25,9 +24,9 @@ class MarkerDetector():
         self.dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
         self.param = cv2.aruco.DetectorParameters_create()
         self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.aruco_marker_pos_pub = rospy.Publisher('/aruco_marker_pos', PS, queue_size=10)
-        self.target_position = rospy.Publisher('/target_position', PS, queue_size=10)
-        self.check_error_pos = rospy.Publisher('/check_error_pos', Float64, queue_size=10)
+        self.aruco_marker_pos_pub = rospy.Publisher('/aruco_marker_pos', PT, queue_size=10)
+        self.target_position = rospy.Publisher('/target_position', PT, queue_size=10)
+        self.check_error_pos = rospy.Publisher('/check_error_pos', Float32, queue_size=10)
         # /mavros/local_position/pose
         local_position_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
             SP.PoseStamped, self._local_position_callback)
@@ -80,14 +79,14 @@ class MarkerDetector():
             corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, self.dict, parameters=self.param)
 
             if np.all(ids is not None):
-                ret1 = aruco.estimatePoseSingleMarkers(corners=corners, markerLength=0.4,
+                ret1 = aruco.estimatePoseSingleMarkers(corners=corners, markerLength=0.08,
                                                        cameraMatrix=self.mtx, distCoeffs=self.dist)
                 rvec, tvec = ret1[0][0, 0, :], ret1[1][0, 0, :]
                 # -- Draw the detected marker and put a reference frame over it
-                #aruco.drawDetectedMarkers(frame, corners, ids)
-                #aruco.drawAxis(frame, self.mtx, self.dist, rvec, tvec, 0.1)
-                # str_position0 = "Marker Position in Camera frame: x=%f  y=%f  z=%f" % (tvec[0], tvec[1], tvec[2])
-                # cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                aruco.drawDetectedMarkers(frame, corners, ids)
+                aruco.drawAxis(frame, self.mtx, self.dist, rvec, tvec, 0.1)
+                str_position0 = "Marker Position in Camera frame: x=%f  y=%f  z=%f" % (tvec[0], tvec[1], tvec[2])
+                cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
                 
                 (rvec - tvec).any()  # get rid of that nasty numpy value array error
                 
@@ -97,48 +96,40 @@ class MarkerDetector():
 
                 if (self.local_pos[3] > -0.1 and self.local_pos[3] < 0.1):
                 # self.pub.publish(marker_position[0], marker_position[1], marker_position[2])
-                    # check_err = np.linalg.norm([tvec[0], tvec[1]])
-                    # self.check_error_pos.publish(check_err)
+                    check_err = np.linalg.norm([tvec[0], tvec[1]])
+                    self.check_error_pos.publish(check_err)
                     # publish marker position in uav frame
-                    marker_pos = PS()
+                    marker_pos = PT()
                     tvec2 = np.matmul(self.imu_cam, tvec1)
                     # marker_pos.position.x = -tvec[1]
                     # marker_pos.position.y = -tvec[0]
                     # marker_pos.position.z = -tvec[2]
-                    marker_pos.pose.position.x = tvec2[0][0]
-                    marker_pos.pose.position.y = tvec2[1][0]
-                    marker_pos.pose.position.z = tvec2[2][0]
-
-                    # marker_pos.position.x = tvec2[0][0]
-                    # marker_pos.position.y = tvec2[1][0]
-                    # marker_pos.position.z = tvec2[2][0]
+                    
+                    marker_pos.position.x = tvec2[0][0]
+                    marker_pos.position.y = tvec2[1][0]
+                    marker_pos.position.z = tvec2[2][0]
                     self.aruco_marker_pos_pub.publish(marker_pos)
 
                     # publish target position in world frame
-                    target_pos = PS()
+                    target_pos = PT()
                     # target_pos.position.x = self.local_pos[0] - tvec[1]
                     # target_pos.position.y = self.local_pos[1] - tvec[0]
-                    target_pos.pose.position.x = self.local_pos[0] + tvec2[0][0]
-                    target_pos.pose.position.y = self.local_pos[1] + tvec2[1][0]
+                    target_pos.position.x = self.local_pos[0] + tvec2[0][0]
+                    target_pos.position.y = self.local_pos[1] + tvec2[1][0]
                     # self.target_pos[0] = self.local_pos[0] + tvec[1]
                     # self.target_pos[1] = self.local_pos[1] + tvec[0]
                     self.target_position.publish(target_pos)
-
-                    check_err = np.linalg.norm([tvec2[0][0], tvec2[1][0]])
-                    self.check_error_pos.publish(check_err)
                     self.rate.sleep()
-                    # str_position0 = "Marker Position in Camera frame: x=%f  y=%f " % (tvec2[0][0], tvec2[1][0])
-                    # cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
                 else:
-                    # check_err = np.linalg.norm([tvec[0], tvec[1]])
-                    # self.check_error_pos.publish(check_err)
+                    check_err = np.linalg.norm([tvec[0], tvec[1]])
+                    self.check_error_pos.publish(check_err)
 
                     # setpose = np.zeros((3,1), dtype=np.float)
                     # setpose[0] = -tvec[1]
                     # setpose[1] = -tvec[0]
                     # setpose[2] = -tvec[2]
                     # # change form
-                    rotMat = tf.transformations.euler_matrix(0, 0, self.local_pos[3])
+                    rotMat = tr.euler_matrix(0, 0, self.local_pos[3])
                     rotMat = np.matmul(rotMat, self.imu_cam)
                     # rotMat = rotMat[0:3, 0:3]
                     tvec2 = np.matmul(rotMat, tvec1)
@@ -147,28 +138,24 @@ class MarkerDetector():
                     # marker_pos.position.x = setpose[0]
                     # marker_pos.position.y = setpose[1]
                     # marker_pos.position.z = setpose[2]
-                    marker_pos = PS()
-                    marker_pos.pose.position.x = tvec2[0][0]
-                    marker_pos.pose.position.y = tvec2[1][0]
-                    marker_pos.pose.position.z = tvec2[2][0]
+                    marker_pos.position.x = tvec2[0][0]
+                    marker_pos.position.y = tvec2[1][0]
+                    marker_pos.position.z = tvec2[2][0]
                     self.aruco_marker_pos_pub.publish(marker_pos)
 
                     # publish target position in world frame
-                    target_pos = PS()
-                    target_pos.pose.position.x = self.local_pos[0] + tvec2[0][0]
-                    target_pos.pose.position.y = self.local_pos[1] + tvec2[1][0]
+                    target_pos = PT()
+                    target_pos.position.x = self.local_pos[0] + tvec2[0][0]
+                    target_pos.position.y = self.local_pos[1] + tvec2[1][0]
                     # target_pos.position.x = self.local_pos[0] + setpose[0]
                     # target_pos.position.y = self.local_pos[1] + setpose[1]
                     # self.target_pos[0] = self.local_pos[0] + tvec[1]
                     # self.target_pos[1] = self.local_pos[1] + tvec[0]
                     self.target_position.publish(target_pos)
-
-                    check_err = np.linalg.norm([tvec2[0][0], tvec2[1][0]])
-                    self.check_error_pos.publish(check_err)
                     self.rate.sleep()
 
-            # cv2.imshow("frame", frame)
-            # cv2.waitKey(1)
+            cv2.imshow("frame", frame)
+            cv2.waitKey(1)
             #self.rate.sleep()
 
 

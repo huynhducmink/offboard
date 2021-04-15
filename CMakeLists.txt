@@ -52,5 +52,7 @@ target_link_libraries(target_pub
 )
 catkin_install_python(PROGRAMS
    scripts/offboard_position.py
+   scripts/real_cam.py
+   scripts/transform.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
