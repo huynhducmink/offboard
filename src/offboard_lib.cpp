@@ -244,7 +244,7 @@ std::vector<double> OffboardControl::vel_limit(geometry_msgs::PoseStamped curren
     {
         vel.clear();
     }
-    vel_desired_ = 0.2;   
+    vel_desired_ = 0.3;   
     
     vel.push_back((dx/d) * vel_desired_);
     vel.push_back((dy/d) * vel_desired_);

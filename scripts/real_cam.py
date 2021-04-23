@@ -74,7 +74,7 @@ class MarkerDetector():
         self.imu_cam[2][2] = -1.0
         self.imu_cam[2][3] = -0.08
         self.imu_cam[3][3] = 1.0
-        #print(self.local_pos[3])
+
         # create vector tvec1, tvec2
         tvec1 = np.zeros((4,1), dtype=np.float)
         tvec1[3][0] = 1.0
@@ -127,29 +127,31 @@ class MarkerDetector():
                     self.check_error_pos.publish(check_err)
                     self.rate.sleep()
                     #str_position0 = "Marker Position in Camera frame: x=%f  y=%f " % (tvec2[0][0], tvec2[1][0])
-                    #cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
-                #else:
+                   # cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                else:
                     # # change form
-                    #rotMat = cv2.Rodrigues()
-                    #rotMat = np.matmul(rotMat, self.imu_cam)
+                    rotMat = tr.eulerAnglesToRotationMatrix([0, 0, self.local_pos[3]])
+                    rotMat = np.matmul(rotMat, self.imu_cam)
                     # rotMat = rotMat[0:3, 0:3]
-                    #tvec2 = np.matmul(rotMat, tvec1)
+                    tvec2 = np.matmul(rotMat, tvec1)
                     # publish marker position in uav frame
-                    #marker_pos = PS()
-                    #marker_pos.pose.position.x = tvec2[0][0]
-                    #marker_pos.pose.position.y = tvec2[1][0]
-                    #marker_pos.pose.position.z = tvec2[2][0]
-                    #elf.aruco_marker_pos_pub.publish(marker_pos)
+                    marker_pos = PS()
+                    marker_pos.pose.position.x = tvec2[0][0]
+                    marker_pos.pose.position.y = tvec2[1][0]
+                    marker_pos.pose.position.z = tvec2[2][0]
+                    self.aruco_marker_pos_pub.publish(marker_pos)
 
                     # publish target position in world frame
-                    #target_pos = PS()
-                    #target_pos.pose.position.x = self.local_pos[0] + tvec2[0][0]
-                    #target_pos.pose.position.y = self.local_pos[1] + tvec2[1][0]
-                    #self.target_position.publish(target_pos)
+                    target_pos = PS()
+                    target_pos.pose.position.x = self.local_pos[0] + tvec2[0][0]
+                    target_pos.pose.position.y = self.local_pos[1] + tvec2[1][0]
+                    self.target_position.publish(target_pos)
 
-                    #check_err = np.linalg.norm([tvec2[0][0], tvec2[1][0]])
-                    #self.check_error_pos.publish(check_err)
-                    #self.rate.sleep()
+                    #str_position0 = "Marker Position in Camera frame: x=%f  y=%f " % (tvec2[0][0], tvec2[1][0])
+                    #cv2.putText(frame, str_position0, (0, 50), self.font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                    check_err = np.linalg.norm([tvec2[0][0], tvec2[1][0]])
+                    self.check_error_pos.publish(check_err)
+                    self.rate.sleep()
 
             #cv2.imshow("frame", frame)
             #cv2.waitKey(1)
@@ -162,3 +164,4 @@ if __name__ == '__main__':
         MD.marker_pose()
     except rospy.ROSInterruptException:
         pass
+
