@@ -492,8 +492,8 @@ void OffboardControl::position_control(ros::NodeHandle nh, ros::Rate rate)
             {
                 std::printf("\n[ INFO] Reached position: [%.8f, %.8f, %.3f]\n", 
                             global_position_.latitude, global_position_.longitude, global_position_.altitude);
-                std::printf("[ INFO] Goal GPS: [%.8f, %.8f, %.3f]\n", in_latitude_[i], in_latitude_[i], in_altitude_[i]);
-                std::printf("[ INFO] Next goal: [%.8f, %.8f, %.3f]\n", in_latitude_[i+1], in_latitude_[i+1], in_altitude_[i+1]);
+                std::printf("[ INFO] Goal GPS: [%.8f, %.8f, %.3f]\n", in_latitude_[i], in_longitude_[i], in_altitude_[i]);
+                std::printf("[ INFO] Next goal: [%.8f, %.8f, %.3f]\n", in_latitude_[i+1], in_longitude_[i+1], in_altitude_[i+1]);
                 std::printf("\n[ INFO] Local position: [%.3f, %.3f, %.3f]\n", 
                             current_pose_.pose.position.x, current_pose_.pose.position.y, current_pose_.pose.position.z);   
                 std::printf("[ INFO] Converted target: [%.3f, %.3f, %.3f]\n", 
