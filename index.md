@@ -1,14 +1,32 @@
-## Welcome to GitHub Pages
+## Welcome to CONGTRANV GitHub Pages
 
-You can use the [editor on GitHub](https://github.com/congtranv/offboard/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+### OFFBOARD
+<!-- Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for -->
+This project is developed to use the onboard computer for controlling the drone. It is based on ROS and MAVROS.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+It includes some features:
+- Keep drone hover at the certain height in configured time
+- Perform a flight that follow the setpoints: local or global setpoint
+- Input setpoints from keyboard or set in a config file
 
-### Markdown
+We build a Quadrotor for test:
+#### Frame and Power:
+- Frame: Tarot Ironman 650 foldable
+- Motor: T-Motor MN4010 KV580 - 4 units
+- Prop: Cacbon (DJI form) 15x5.5in (CW and CCW) - 2 units
+- ESC: Hobbywing XRotor 40A - 4 units
+- Battery: 4s 1800mAh 45c - Two Units
+- Power management: Pixhawk PM07 - 1 unit
+- BEC: 5V 4A - 1 unit
+#### Flight control and Sensor:
+- Flight control: Holybro Pixhawk 4 - 1 unit
+- GPS: Pixhawk Neo-M8N GPS module - 1 unit
+- Onboard computer: NVIDIA Jetson Nano - 1 unit
+#### Communication:
+- Receiver: Frsky X8R - 1 unit
+- Transmitter: Frsky Taranis Q X7 - 1 unit
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
+<!-- ```markdown
 Syntax highlighted code block
 
 # Header 1
@@ -24,14 +42,37 @@ Syntax highlighted code block
 **Bold** and _Italic_ and `Code` text
 
 [Link](url) and ![Image](src)
-```
+``` -->
+### HOVERING
+- Get current position from drone via mavros topic
+- Input a height (z) from keyboard to hover
+- Set a target position with x = current position x, y = current position y and z = z input
+- Get time to hover from a config file
+- Publish target to drone and keep it hover in setup time
+- Land after timeout
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+### SETPOINT
+- Get current position from drone via mavros topic, include local position and global position
 
-### Jekyll Themes
+  **local position**: position in x,y,z coordinates. Unit: meter
+  
+  **global position**: position in GPS: latitiude, longitude and altitude
+- Choose position type:
+  
+  **local position**: target can be input from keyboard or load from config file
+  
+  **global position**: target also can be input or load as local position. after get target, need a conversion from GPS to x, y, z
+- Publish target to drone and check when drone reach it. Continue until the final setpoint
+- At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
+
+
+<!-- For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/). -->
+
+<!-- ### Jekyll Themes
 
 Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/congtranv/offboard/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
 
 ### Support or Contact
 
 Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+-->
