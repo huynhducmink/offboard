@@ -1,7 +1,13 @@
-## Welcome to GitHub Pages
+## <span style="color:green">Welcome to GitHub Pages</span>
 
 ### OFFBOARD
-<!-- Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for -->
+
+***
+> <span style="color:red">WARNING</span> 
+>
+> <span style="color:yellow">OFFBOARD control is dangerous.<br>If you are operating on a real vehicle be sure to have a way of gaining back manual control in case something goes wrong.</span>
+***
+
 This project is developed to use the onboard computer for controlling the drone. 
 
 It is based on ROS and MAVROS and includes some features:
@@ -10,7 +16,7 @@ It is based on ROS and MAVROS and includes some features:
 - Perform a flight that follow the setpoints: local or global setpoint
 - Input setpoints from keyboard or set in a config file
 
-We build a Quadrotor for test:
+Quadrotor for test:
 
 #### Frame and Power:
 - Frame: Tarot Ironman 650 foldable
@@ -30,7 +36,31 @@ We build a Quadrotor for test:
 - Receiver: Frsky X8R - 1 unit
 - Transmitter: Frsky Taranis Q X7 - 1 unit
 
-<!-- ```markdown
+### Hovering
+- Get current position from drone via mavros topic
+- Input a height (z) from keyboard to hover
+- Set a target position with x = current position x, y = current position y and z = z input
+- Get time to hover from a config file
+- Publish target to drone and keep it hover in setup time
+- Land after timeout
+
+### Setpoint
+- Get current position from drone via mavros topic, include local position and global position
+
+  **local position**: position in x, y, z coordinates. Unit: meter
+  
+  **global position**: position in GPS: latitiude, longitude and altitude
+- Choose position type:
+  
+  **local position**: target can be input from keyboard or load from config file
+  
+  **global position**: target also can be input or load as local position. after get target, have a conversion from GPS to x, y, z
+- Publish target to drone and check when drone reach it. Continue until the final setpoint
+- At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
+
+
+<!-- 
+```markdown
 Syntax highlighted code block
 
 # Header 1
@@ -46,33 +76,23 @@ Syntax highlighted code block
 **Bold** and _Italic_ and `Code` text
 
 [Link](url) and ![Image](src)
-``` -->
-### Hovering
-- Get current position from drone via mavros topic
-- Input a height (z) from keyboard to hover
-- Set a target position with x = current position x, y = current position y and z = z input
-- Get time to hover from a config file
-- Publish target to drone and keep it hover in setup time
-- Land after timeout
+``` 
 
-### Setpoint
-- Get current position from drone via mavros topic, include local position and global position
+For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/). 
 
-  **local position**: position in x,y,z coordinates. Unit: meter
-  
-  **global position**: position in GPS: latitiude, longitude and altitude
-- Choose position type:
-  
-  **local position**: target can be input from keyboard or load from config file
-  
-  **global position**: target also can be input or load as local position. after get target, need a conversion from GPS to x, y, z
-- Publish target to drone and check when drone reach it. Continue until the final setpoint
-- At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
+<details>
+<summary markdown="span">First level collapsible item</summary>
+**Lorem ipsum dolor sit amet...**
+<details>
+<summary markdown="span">Second level collapsible item</summary>
+*Sed ut perspiciatis unde omnis iste natus...*
+</details>
+</details>
 
+-->
 
-<!-- For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/). -->
-
-<!-- ### Jekyll Themes
+<!-- 
+### Jekyll Themes
 
 Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/congtranv/offboard/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
 
