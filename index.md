@@ -2,11 +2,13 @@
 
 ### OFFBOARD
 
-***
+---
+
 > <span style="color:red">WARNING</span> 
->
+> 
 > OFFBOARD control is dangerous.<br>If you are operating on a real vehicle be sure to have a way of gaining back manual control in case something goes wrong.
-***
+
+---
 
 This project is developed to use the onboard computer for controlling the drone. 
 
