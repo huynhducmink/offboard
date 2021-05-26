@@ -74,7 +74,7 @@ Quadrotor for test:
 - At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
 
 <video width="480" height="270" controls>
-  <source src="video/sepoints.mp4" type="video/mp4">
+  <source src="video/setpoints.mp4" type="video/mp4">
 </video>
 
 <!-- 
