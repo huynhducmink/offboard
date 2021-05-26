@@ -55,7 +55,7 @@ Quadrotor for test:
 - Publish target to drone and keep it hover in setup time
 - Land after timeout
 
-<video width="640" height="400" controls="true" allowfullscreen="false" poster="img/Screenshot 2021-05-26 16:08:37.png">
+<video width="480" height="270" controls>
   <source src="video/hovering.mp4" type="video/mp4">
 </video>
 
@@ -73,7 +73,7 @@ Quadrotor for test:
 - Publish target to drone and check when drone reach it. Continue until the final setpoint
 - At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
 
-<video width="640" height="400" controls="true" allowfullscreen="false" poster="img/Screenshot 2021-05-26 16:08:37 (copy).png">
+<video width="480" height="270" controls>
   <source src="video/sepoints.mp4" type="video/mp4">
 </video>
 
