@@ -55,9 +55,13 @@ Quadrotor for test:
 - Publish target to drone and keep it hover in setup time
 - Land after timeout
 
-<video width="480" height="270" controls>
-  <source src="video/hovering.mp4" type="video/mp4">
-</video>
+<figure class="video_container">
+  <video width="480" height="270" controls>
+    <source src="video/hovering.mp4" type="video/mp4">
+    <source src="video/hovering.ogg" type="video/ogg">
+    <source src="video/hovering.webm" type="video/webm">
+  </video>
+</figure>
 
 ### Setpoint
 - Get current position from drone via mavros topic, include local position and global position
@@ -73,9 +77,13 @@ Quadrotor for test:
 - Publish target to drone and check when drone reach it. Continue until the final setpoint
 - At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
 
-<video width="480" height="270" controls>
-  <source src="video/setpoints.mp4" type="video/mp4">
-</video>
+<figure class="video_container">
+  <video width="480" height="270" controls>
+    <source src="video/setpoints.mp4" type="video/mp4">
+    <source src="video/setpoints.ogg" type="video/ogg">
+    <source src="video/setpoints.webm" type="video/webm">
+  </video>
+</figure>
 
 
 <!-- 
