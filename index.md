@@ -69,11 +69,8 @@ Quadrotor for test:
   **local position**: position in x, y, z coordinates. Unit: meter
   
   **global position**: position in GPS: latitiude, longitude and altitude
-- Choose position type:
-  
-  **local position**: target can be input from keyboard or load from config file
-  
-  **global position**: target also can be input or load as local position. after get target, have a conversion from GPS to x, y, z
+
+- Choose position type: target can be input from keyboard or load from config file - **local position** or **global position**
 - Publish target to drone and check when drone reach it. Continue until the final setpoint
 - At each setpoint drone hover in a time. And at final setpoint, drone land after timeout
 
