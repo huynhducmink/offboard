@@ -95,6 +95,9 @@ class OffboardControl
 	double z_delivery_; // the height (set to 0.0 for land to ground - need to set disable auto-disarm of pixhawk) want drone go to for delivery in delivery mode
 
 	double vel_desired_, land_vel_, return_vel_; // corresponding desired speed to fly, when land and when return home
+
+	double yaw_rate_;
+
 	geometry_msgs::Vector3 components_vel_; // components of desired velocity about x, y, z axis
 	double hover_time_, takeoff_hover_time_, unpack_time_; // corresponding hover time when reached setpoint, when takeoff and when unpacking
 	ros::Time operation_time_1_, operation_time_2_; // checkpoint to calculate operation time of each perform program

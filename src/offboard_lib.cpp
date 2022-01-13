@@ -43,6 +43,8 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
     nh_private_.getParam("/offboard_node/land_velocity", land_vel_);
     nh_private_.getParam("/offboard_node/return_velcity", return_vel_);
     
+    nh_private_.getParam("/offboard_node/yaw_rate", yaw_rate_);
+
     waitForPredicate(10.0);
     if(input_setpoint)
     {
@@ -416,6 +418,7 @@ void OffboardControl::enuFlight()
     int i=0;
     geometry_msgs::PoseStamped setpoint;
     std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f]\n", x_target_[i], y_target_[i], z_target_[i]);
+    double target_alpha,this_loop_alpha;
     while(ros::ok())
     {
         if(i<(num_of_enu_target_-1))
@@ -431,12 +434,48 @@ void OffboardControl::enuFlight()
 
         components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
 
-        target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
+        // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
+
+        // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
+        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+
+        if ((yaw_-target_alpha)>=PI){
+            target_alpha+=2*PI;
+        }
+        else if ((yaw_-target_alpha)<=-PI){
+            target_alpha-=2*PI;
+        }
+        else{}
+
+        if (target_alpha<=yaw_){
+            if ((yaw_-target_alpha)>yaw_rate_){
+                this_loop_alpha=yaw_-yaw_rate_;
+            }
+            else {
+                this_loop_alpha=target_alpha;
+            }
+        }
+        else{
+            if ((target_alpha-yaw_)>yaw_rate_){
+                this_loop_alpha=yaw_+yaw_rate_;
+            }
+            else {
+                this_loop_alpha=target_alpha;
+            }
+        }
+
+        target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+        target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
+        target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
+        target_enu_pose_.pose.position.z = current_odom_.pose.pose.position.z + components_vel_.z; 
+
         target_enu_pose_.header.stamp = ros::Time::now();
         setpoint_pose_pub_.publish(target_enu_pose_);
 
-        distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
-        std::printf("Distance to target: %.1f (m) \n", distance_);
+        // distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        // std::printf("Distance to target: %.1f (m) \n", distance_);
+
+        std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
 
         bool target_reached = checkPositionError(target_error_, setpoint);
 
@@ -1061,7 +1100,15 @@ void OffboardControl::hovering(geometry_msgs::PoseStamped setpoint, double hover
     t_check = ros::Time::now();
     while ((ros::Time::now() - t_check) < ros::Duration(hover_time))
     {
-        setpoint_pose_pub_.publish(setpoint);
+        // setpoint_pose_pub_.publish(setpoint);
+
+        target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(yaw_);
+        target_enu_pose_.pose.position.x = setpoint.pose.position.x; 
+        target_enu_pose_.pose.position.y = setpoint.pose.position.y; 
+        target_enu_pose_.pose.position.z = setpoint.pose.position.z; 
+
+        target_enu_pose_.header.stamp = ros::Time::now();
+        setpoint_pose_pub_.publish(target_enu_pose_);
 
         ros::spinOnce();
     	rate.sleep();
