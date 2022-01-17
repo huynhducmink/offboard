@@ -22,6 +22,7 @@
 #include<cmath>
 #include<cstdio>
 #include<vector>
+#include<fstream>
 
 #include<offboard/traj_gen.h>
 
@@ -97,6 +98,8 @@ class OffboardControl
 	double vel_desired_, land_vel_, return_vel_; // corresponding desired speed to fly, when land and when return home
 
 	double yaw_rate_;
+	double yaw_error_;
+	double target_yaw_;
 
 	geometry_msgs::Vector3 components_vel_; // components of desired velocity about x, y, z axis
 	double hover_time_, takeoff_hover_time_, unpack_time_; // corresponding hover time when reached setpoint, when takeoff and when unpacking
@@ -149,6 +152,7 @@ class OffboardControl
 	bool checkPositionError(double error, geometry_msgs::PoseStamped target); // check offset between current position from odometry and setpoint position to decide when drone reached setpoint
 	bool checkPositionError(double error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target); // check offset between current position and setpoint position to decide when drone reached setpoint
 	bool checkOrientationError(double error, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target); // check offset between current orientation and setpoint orientation to decide when drone reached setpoint
+	bool checkPositionAndYawError(double error, double yaw_error, double yaw, geometry_msgs::PoseStamped target,double yaw_target);
 
 	bool checkGPSError(double error, sensor_msgs::NavSatFix current, sensor_msgs::NavSatFix goal); // check offset between current GPS and setpoint GPS to decide when drone reached setpoint
 

@@ -44,6 +44,8 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
     nh_private_.getParam("/offboard_node/return_velcity", return_vel_);
     
     nh_private_.getParam("/offboard_node/yaw_rate", yaw_rate_);
+    nh_private_.getParam("/offboard_node/yaw_error", yaw_error_);
+
 
     waitForPredicate(10.0);
     if(input_setpoint)
@@ -300,7 +302,8 @@ void OffboardControl::inputENU()
     std::printf("\n[ INFO] Please choose input method:\n");
     std::printf("- Choose 1: Manual enter from keyboard\n");
     std::printf("- Choose 2: Load prepared from launch file\n");
-    std::printf("(1/2): ");
+    std::printf("- Choose 3: Spin\n");
+    std::printf("(1/2/3): ");
     std::cin >> c;
     if(c == '1')
     {
@@ -338,6 +341,34 @@ void OffboardControl::inputENU()
             rate.sleep();
         }
         std::printf(" Error to check target reached: %.1f (m)\n", target_error_);
+    }
+    else if(c == '3')
+    {
+        double x, y, z, yaw;
+        std::printf("[ INFO] Manual enter ENU target position(s)\n");
+        std::printf(" Number of target(s): "); 
+        std::cin >> num_of_enu_target_;
+        if(!x_target_.empty() || !y_target_.empty() || !z_target_.empty())
+        {
+            x_target_.clear();
+            y_target_.clear();
+            z_target_.clear();
+        }
+        for(int i=0; i<num_of_enu_target_; i++)
+        {
+            std::printf(" Target (%d) postion x, y, z (in meter): ", i+1);
+            std::cin >> x >> y >> z;
+            x_target_.push_back(x); 
+            y_target_.push_back(y); 
+            z_target_.push_back(z);
+            ros::spinOnce();
+            rate.sleep();
+        }
+        std::printf(" Error to check target reached (in meter): ");
+        std::cin >> target_error_;
+        std::printf("[INFO] Drone spin at current position\n");
+        std::printf("Input yaw angle: ");
+        std::cin >> target_yaw_;
     }
     else
     {
@@ -419,6 +450,11 @@ void OffboardControl::enuFlight()
     geometry_msgs::PoseStamped setpoint;
     std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f]\n", x_target_[i], y_target_[i], z_target_[i]);
     double target_alpha,this_loop_alpha;
+
+    std::ofstream myfile;
+    myfile.open("/home/huynhmink/Desktop/Lab/CSV/default_spin.csv");
+    myfile << "x" << "," << "y" << std::endl;
+
     while(ros::ok())
     {
         if(i<(num_of_enu_target_-1))
@@ -437,7 +473,8 @@ void OffboardControl::enuFlight()
         // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
 
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
-        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        target_alpha = target_yaw_;
 
         if ((yaw_-target_alpha)>=PI){
             target_alpha+=2*PI;
@@ -475,15 +512,18 @@ void OffboardControl::enuFlight()
         // distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         // std::printf("Distance to target: %.1f (m) \n", distance_);
 
+        myfile << current_odom_.pose.pose.position.x << "," << current_odom_.pose.pose.position.y << "," << yaw_ << std::endl;
+
         std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
 
-        bool target_reached = checkPositionError(target_error_, setpoint);
+        // bool target_reached = checkPositionError(target_error_, setpoint);
+        bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
 
         if(target_reached && !final_position_reached_)
         {
             std::printf("\n[ INFO] Reached position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             
-            hovering(setpoint, hover_time_);
+            // hovering(setpoint, hover_time_);
             if(delivery_mode_enable_)
             {
                 delivery(setpoint, unpack_time_);
@@ -1287,6 +1327,15 @@ bool OffboardControl::checkPositionError(double error, geometry_msgs::PoseStampe
     geo_error << target.pose.position.x - current.pose.position.x, target.pose.position.y - current.pose.position.y, target.pose.position.z - current.pose.position.z;
 
 	return (geo_error.norm() < error) ? true:false;
+}
+
+bool OffboardControl::checkPositionAndYawError(double error, double yaw_error, double yaw, geometry_msgs::PoseStamped target,double yaw_target)
+{
+    Eigen::Vector3d geo_error;
+    geo_error << target.pose.position.x - current_odom_.pose.pose.position.x, target.pose.position.y - current_odom_.pose.pose.position.y, target.pose.position.z - current_odom_.pose.pose.position.z;
+	// return ((geo_error.norm() < error)&&(abs(yaw-yaw_target)<yaw_error)) ? true:false;
+	if ((geo_error.norm() < error) && (abs(yaw-yaw_target) < yaw_error)){return true;}
+    else {return false;}
 }
 
 /* check offset between current orientation and setpoint orientation to decide when drone reached setpoint

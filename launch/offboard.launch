@@ -28,14 +28,15 @@
         <param name="z_takeoff" type="double" value="3.0"/>
         <param name="z_delivery" type="double" value="$(arg z_delivery)"/>
         <param name="land_error" type="double" value="0.1"/>
-        <param name="takeoff_hover_time" type="double" value="5.0"/>
+        <param name="takeoff_hover_time" type="double" value="2.0"/>
         <param name="hover_time" type="double" value="$(arg hover_time)"/>
         <param name="unpack_time" type="double" value="$(arg unpack_time)"/>
         <param name="desired_velocity" type="double" value="$(arg desired_velocity)"/>
         <param name="land_velocity" type="double" value="0.7"/>
         <param name="return_velcity" type="double" value="0.7"/>
 
-        <param name="yaw_rate" type="double" value="0.3"/>
+        <param name="yaw_rate" type="double" value="10"/>
+        <param name="yaw_error" type="double" value="0.02"/>
 
     </node>
 </launch>
