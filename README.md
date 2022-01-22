@@ -8,6 +8,8 @@ change yaw_rate value in offboard.launch (suggest value around 0.2 - 0.3) to cha
  - Change the desired yaw angle to be between the old setpoint and new setpoint in replacement for between current position and new setpoint. This help to stabilize the drone yaw angle when flying in a trajectory with setpoints close to each other.
  - The publish yaw angle is an offset of the current yaw angle with offset value equal yaw_rate, this make the drone yaw slower.
 
+Currently applied to only ENU flight, for planner flight please apply the same code to plannerFlight function
+
 ***
 ## !!! WARNING
 

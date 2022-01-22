@@ -302,7 +302,7 @@ void OffboardControl::inputENU()
     std::printf("\n[ INFO] Please choose input method:\n");
     std::printf("- Choose 1: Manual enter from keyboard\n");
     std::printf("- Choose 2: Load prepared from launch file\n");
-    std::printf("- Choose 3: Spin\n");
+    std::printf("- Choose 3: Spin (for testing, don't use) \n");
     std::printf("(1/2/3): ");
     std::cin >> c;
     if(c == '1')
@@ -475,9 +475,11 @@ void OffboardControl::enuFlight()
         // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
         
-
-        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
-        // target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
+        //calculate desired yaw angle to be between current position and new setpoint
+        // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //calculate desired yaw angle to be between old setpoint and new setpoint
+        target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
+        //used for testing
         // target_alpha = target_yaw_;
 
         // test to know what direction drone need to spin
@@ -524,7 +526,7 @@ void OffboardControl::enuFlight()
         // std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
 
         //use the first line when flying as it dont check yaw error when position has been reached
-        //second line only for spinning test or when you need both position and yaw angle
+        //second line only for spinning test or when need to check both position and yaw angle
         bool target_reached = checkPositionError(target_error_, setpoint);
         // bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
 
