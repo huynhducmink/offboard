@@ -1,5 +1,7 @@
 # IVSR OFFBOARD package
 
+Update for slower yaw speed: change yaw_rate value in offboard.launch
+
 ***
 ## !!! WARNING
 

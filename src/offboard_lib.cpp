@@ -344,6 +344,7 @@ void OffboardControl::inputENU()
     }
     else if(c == '3')
     {
+        //test case for spinning at 0 0 3 position
         double x, y, z, yaw;
         std::printf("[ INFO] Manual enter ENU target position(s)\n");
         std::printf(" Number of target(s): "); 
@@ -451,9 +452,10 @@ void OffboardControl::enuFlight()
     std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f]\n", x_target_[i], y_target_[i], z_target_[i]);
     double target_alpha,this_loop_alpha;
 
-    std::ofstream myfile;
-    myfile.open("/home/huynhmink/Desktop/Lab/CSV/default_spin.csv");
-    myfile << "x" << "," << "y" << std::endl;
+    // log x y position data for testing
+    // std::ofstream myfile;
+    // myfile.open("/home/huynhmink/Desktop/Lab/CSV/default_spin.csv");
+    // myfile << "x" << "," << "y" << std::endl;
 
     while(ros::ok())
     {
@@ -471,11 +473,13 @@ void OffboardControl::enuFlight()
         components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
 
         // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
-
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
-        // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
-        target_alpha = target_yaw_;
+        
+        //use the first line when flying, second line only for spinning test
+        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        // target_alpha = target_yaw_;
 
+        // test to know what direction drone need to spin
         if ((yaw_-target_alpha)>=PI){
             target_alpha+=2*PI;
         }
@@ -484,6 +488,8 @@ void OffboardControl::enuFlight()
         }
         else{}
 
+        // calculate the input for position controller (this_loop_alpha) so that the input yaw value will always be higher or lower than current yaw angle (yaw_) a value of yaw_rate_
+        // this make the drone yaw slower
         if (target_alpha<=yaw_){
             if ((yaw_-target_alpha)>yaw_rate_){
                 this_loop_alpha=yaw_-yaw_rate_;
@@ -509,15 +515,16 @@ void OffboardControl::enuFlight()
         target_enu_pose_.header.stamp = ros::Time::now();
         setpoint_pose_pub_.publish(target_enu_pose_);
 
-        // distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
-        // std::printf("Distance to target: %.1f (m) \n", distance_);
+        distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        std::printf("Distance to target: %.1f (m) \n", distance_);
 
-        myfile << current_odom_.pose.pose.position.x << "," << current_odom_.pose.pose.position.y << "," << yaw_ << std::endl;
+        // myfile << current_odom_.pose.pose.position.x << "," << current_odom_.pose.pose.position.y << "," << yaw_ << std::endl;
 
-        std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
+        // std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
 
-        // bool target_reached = checkPositionError(target_error_, setpoint);
-        bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
+        //use the first line when flying, second line only for spinning test
+        bool target_reached = checkPositionError(target_error_, setpoint);
+        // bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
 
         if(target_reached && !final_position_reached_)
         {
