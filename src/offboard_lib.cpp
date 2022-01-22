@@ -475,8 +475,9 @@ void OffboardControl::enuFlight()
         // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
         
-        //use the first line when flying, second line only for spinning test
+
         target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        // target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
         // target_alpha = target_yaw_;
 
         // test to know what direction drone need to spin
@@ -522,7 +523,8 @@ void OffboardControl::enuFlight()
 
         // std::printf("Target_yaw: %.2f \t This loop yaw: %.2f \t Current yaw: %.2f \n",target_alpha,this_loop_alpha,yaw_);
 
-        //use the first line when flying, second line only for spinning test
+        //use the first line when flying as it dont check yaw error when position has been reached
+        //second line only for spinning test or when you need both position and yaw angle
         bool target_reached = checkPositionError(target_error_, setpoint);
         // bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
 

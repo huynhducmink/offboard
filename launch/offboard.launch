@@ -35,7 +35,7 @@
         <param name="land_velocity" type="double" value="0.7"/>
         <param name="return_velcity" type="double" value="0.7"/>
 
-        <param name="yaw_rate" type="double" value="0.5"/>
+        <param name="yaw_rate" type="double" value="0.3"/>
         <param name="yaw_error" type="double" value="0.01"/>
 
     </node>
