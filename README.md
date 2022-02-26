@@ -1,9 +1,13 @@
 # IVSR OFFBOARD package
+Update 27/02/2022
+Yaw speed set to 0.1
+Change the target yaw angle back to the angle between current position and next setpoint/optimal point as in planner flight we don't have a list of fixed setpoints.
+When drone need to rotate large yaw angle (>0.2rad), it will fix it position (find "current_hold") and change yaw so that it will not drift much.
+Testing with ENU flight show somewhat better results. Didn't test with planner flight yet. Asking Duy to help.
+
 
 Update for slower yaw speed: 
-
 change yaw_rate value in offboard.launch (suggest value around 0.2 - 0.3) to change yaw speed of the drone
-
 2 main point: 
  - Change the desired yaw angle to be between the old setpoint and new setpoint in replacement for between current position and new setpoint. This help to stabilize the drone yaw angle when flying in a trajectory with setpoints close to each other.
  - The publish yaw angle is an offset of the current yaw angle with offset value equal yaw_rate, this make the drone yaw slower.
