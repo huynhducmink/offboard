@@ -452,10 +452,11 @@ void OffboardControl::enuFlight()
     std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f]\n", x_target_[i], y_target_[i], z_target_[i]);
     double target_alpha,this_loop_alpha;
 
-    // log x y position data for testing
-    // std::ofstream myfile;
-    // myfile.open("/home/huynhmink/Desktop/Lab/CSV/default_spin.csv");
-    // myfile << "x" << "," << "y" << std::endl;
+    //work in progress
+    //point to hold position when yaw angle is to high. Save this position and publish this position with yaw when need to rotate high yaw angle will help drone hold position. Update this position constantly when moving
+    double current_hold_x = current_odom_.pose.pose.position.x;
+    double current_hold_y = current_odom_.pose.pose.position.y;
+    double current_hold_z = current_odom_.pose.pose.position.z;
 
     while(ros::ok())
     {
@@ -476,9 +477,9 @@ void OffboardControl::enuFlight()
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
         
         //calculate desired yaw angle to be between current position and new setpoint
-        // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         //calculate desired yaw angle to be between old setpoint and new setpoint
-        target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
+        // target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
         //used for testing
         // target_alpha = target_yaw_;
 
@@ -510,10 +511,25 @@ void OffboardControl::enuFlight()
             }
         }
 
-        target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-        target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
-        target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
-        target_enu_pose_.pose.position.z = current_odom_.pose.pose.position.z + components_vel_.z; 
+		// rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
+		if (abs(yaw_-target_alpha)<0.2){	
+			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+			target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
+			target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
+			target_enu_pose_.pose.position.z = current_odom_.pose.pose.position.z + components_vel_.z; 
+            // update the hold position // detail mention above
+            current_hold_x = current_odom_.pose.pose.position.x;
+            current_hold_y = current_odom_.pose.pose.position.y;
+            current_hold_z = current_odom_.pose.pose.position.z;
+		}
+		else {
+			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+            //using the hold position as target help the drone reduce drift
+			target_enu_pose_.pose.position.x = current_hold_x;
+			target_enu_pose_.pose.position.y = current_hold_y;
+			target_enu_pose_.pose.position.z = current_hold_z;
+			std::printf("Rotating \n");
+		}
 
         target_enu_pose_.header.stamp = ros::Time::now();
         setpoint_pose_pub_.publish(target_enu_pose_);
@@ -792,6 +808,15 @@ void OffboardControl::plannerFlight()
     bool final_reached = false;
     geometry_msgs::PoseStamped setpoint;
     ros::Rate rate(50.0);
+
+    double target_alpha,this_loop_alpha;
+
+    //work in progress
+    //point to hold position when yaw angle is to high. Save this position and publish this position with yaw when need to rotate high yaw angle will help drone hold position. Update this position constantly when moving
+    double current_hold_x = current_odom_.pose.pose.position.x;
+    double current_hold_y = current_odom_.pose.pose.position.y;
+    double current_hold_z = current_odom_.pose.pose.position.z;
+
     while(ros::ok())
     {
         setpoint = targetTransfer(x_target_[0], y_target_[0], z_target_[0]);
@@ -820,13 +845,62 @@ void OffboardControl::plannerFlight()
         {
             setpoint = targetTransfer(x_target_[num_of_enu_target_-1], y_target_[num_of_enu_target_-1], z_target_[num_of_enu_target_-1]);
             
-            curr_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
+            // curr_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
 
-            target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(curr_alpha);
+            target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
 
-            target_enu_pose_.pose.position.x = opt_point_.x; 
-            target_enu_pose_.pose.position.y = opt_point_.y; 
-            target_enu_pose_.pose.position.z = opt_point_.z; 
+            // test to know what direction drone need to spin
+            if ((yaw_-target_alpha)>=PI){
+                target_alpha+=2*PI;
+            }
+            else if ((yaw_-target_alpha)<=-PI){
+                target_alpha-=2*PI;
+            }
+            else{}
+
+            // calculate the input for position controller (this_loop_alpha) so that the input yaw value will always be higher or lower than current yaw angle (yaw_) a value of yaw_rate_
+            // this make the drone yaw slower
+            if (target_alpha<=yaw_){
+                if ((yaw_-target_alpha)>yaw_rate_){
+                    this_loop_alpha=yaw_-yaw_rate_;
+                }
+                else {
+                    this_loop_alpha=target_alpha;
+                }
+            }
+            else{
+                if ((target_alpha-yaw_)>yaw_rate_){
+                    this_loop_alpha=yaw_+yaw_rate_;
+                }
+                else {
+                    this_loop_alpha=target_alpha;
+                }
+            }
+
+            // rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
+            if (abs(yaw_-target_alpha)<0.2){	
+                target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+                target_enu_pose_.pose.position.x = opt_point_.x;
+                target_enu_pose_.pose.position.y = opt_point_.y; 
+                target_enu_pose_.pose.position.z = opt_point_.z;
+                // update the hold position // detail mention above
+                current_hold_x = current_odom_.pose.pose.position.x;
+                current_hold_y = current_odom_.pose.pose.position.y;
+                current_hold_z = current_odom_.pose.pose.position.z;
+            }
+            else {
+                target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+                //using the hold position as target help the drone reduce drift
+                target_enu_pose_.pose.position.x = current_hold_x;
+                target_enu_pose_.pose.position.y = current_hold_y;
+                target_enu_pose_.pose.position.z = current_hold_z;
+                std::printf("Rotating \n");
+            }
+
+            // target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(curr_alpha);
+            // target_enu_pose_.pose.position.x = opt_point_.x; 
+            // target_enu_pose_.pose.position.y = opt_point_.y; 
+            // target_enu_pose_.pose.position.z = opt_point_.z; 
 
             target_enu_pose_.header.stamp = ros::Time::now();
             setpoint_pose_pub_.publish(target_enu_pose_);
