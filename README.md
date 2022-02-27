@@ -1,8 +1,11 @@
 # IVSR OFFBOARD package
 Update 27/02/2022
 Yaw speed set to 0.1
+
 Change the target yaw angle back to the angle between current position and next setpoint/optimal point as in planner flight we don't have a list of fixed setpoints.
+
 When drone need to rotate large yaw angle (>0.2rad), it will fix it position (find "current_hold") and change yaw so that it will not drift much.
+
 Testing with ENU flight show somewhat better results. Didn't test with planner flight yet. Asking Duy to help.
 
 
