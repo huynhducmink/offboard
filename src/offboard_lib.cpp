@@ -311,24 +311,31 @@ void OffboardControl::inputENU()
         std::printf("[ INFO] Manual enter ENU target position(s)\n");
         std::printf(" Number of target(s): "); 
         std::cin >> num_of_enu_target_;
-        if(!x_target_.empty() || !y_target_.empty() || !z_target_.empty())
+        if(!x_target_.empty() || !y_target_.empty() || !z_target_.empty() || !yaw_target_.empty())
         {
             x_target_.clear();
             y_target_.clear();
             z_target_.clear();
+            yaw_target_.clear();
         }
         for(int i=0; i<num_of_enu_target_; i++)
         {
             std::printf(" Target (%d) postion x, y, z (in meter): ", i+1);
             std::cin >> x >> y >> z;
+            std::printf(" Target (%d) yaw angle in radian: ",i+1);
+            std::cin >> yaw;
             x_target_.push_back(x); 
             y_target_.push_back(y); 
             z_target_.push_back(z);
+            yaw_target_.push_back(yaw);
             ros::spinOnce();
             rate.sleep();
         }
         std::printf(" Error to check target reached (in meter): ");
         std::cin >> target_error_;
+        std::printf(" Error to check yaw target reached (in radian): ");
+        std::cin >> target_yaw_error_;
+
     }
     else if(c == '2')
     {
@@ -449,7 +456,8 @@ void OffboardControl::enuFlight()
     ros::Rate rate(10.0);
     int i=0;
     geometry_msgs::PoseStamped setpoint;
-    std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f]\n", x_target_[i], y_target_[i], z_target_[i]);
+    double setpoint_yaw;
+    std::printf("\n[ INFO] Target: [%.1f, %.1f, %.1f, %.2f]\n", x_target_[i], y_target_[i], z_target_[i], yaw_target_[i]);
     double target_alpha,this_loop_alpha;
 
     //work in progress
@@ -464,11 +472,13 @@ void OffboardControl::enuFlight()
         {
             final_position_reached_ = false;
             setpoint = targetTransfer(x_target_[i], y_target_[i], z_target_[i]);
+            setpoint_yaw = yaw_target_[i];
         }
         else
         {
             final_position_reached_ = true;
             setpoint = targetTransfer(x_target_[num_of_enu_target_-1], y_target_[num_of_enu_target_-1], z_target_[num_of_enu_target_-1]);
+            setpoint_yaw = yaw_target_[num_of_enu_target_-1];
         }
 
         components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
@@ -544,9 +554,18 @@ void OffboardControl::enuFlight()
         //use the first line when flying as it dont check yaw error when position has been reached
         //second line only for spinning test or when need to check both position and yaw angle
         bool target_reached = checkPositionError(target_error_, setpoint);
-        // bool target_reached = checkPositionAndYawError(target_error_,yaw_error_,yaw_,setpoint,target_alpha);
+        bool target_yaw_reached = checkPositionAndYawError(target_error_,target_yaw_error_,yaw_,setpoint,setpoint_yaw)
 
-        if(target_reached && !final_position_reached_)
+        if(target_reached && !target_yaw_reached !final_position_reached_)
+        {
+            std::printf("Reach target position but not yaw angle, rotating...\n")
+            target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(setpoint_yaw);
+			target_enu_pose_.pose.position.x = x_target_[i];
+			target_enu_pose_.pose.position.y = y_target_[i];
+			target_enu_pose_.pose.position.z = z_target_[i];
+            setpoint_pose_pub_.publish(target_enu_pose_);
+        }
+        if(target_reached && target_yaw_reached && !final_position_reached_)
         {
             std::printf("\n[ INFO] Reached position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             
@@ -558,7 +577,7 @@ void OffboardControl::enuFlight()
             std::printf("\n[ INFO] Next target: [%.1f, %.1f, %.1f]\n", x_target_[i+1], y_target_[i+1], z_target_[i+1]);
             i+=1;
         }
-        if(target_reached && final_position_reached_)
+        if(target_reached && target_yaw_reached && final_position_reached_)
         {
             std::printf("\n[ INFO] Reached Final position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             hovering(setpoint, hover_time_);

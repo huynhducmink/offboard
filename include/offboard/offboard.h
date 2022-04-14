@@ -87,7 +87,7 @@ class OffboardControl
 	std::vector<double> lon_goal_; // array of longitude of all setpoints
 	std::vector<double> alt_goal_; // array of altitude of all setpoints
 	
-	double target_error_, goal_error_, land_error_; // the offset to check when the drone reached the setpoints (for ENU, GPS and land, corresponding)
+	double target_error_, target_yaw_error_, goal_error_, land_error_; // the offset to check when the drone reached the setpoints (for ENU, GPS and land, corresponding)
 	double distance_; // distance from current position to next setpoint
 	
 	double x_off_[100], y_off_[100], z_off_[100]; // array to calculate offset from current ENU (x,y,z) and GPS converted (x,y,z) in a period
