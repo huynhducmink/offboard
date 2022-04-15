@@ -512,7 +512,7 @@ void OffboardControl::enuFlight()
         }
 
 		// rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
-		if (abs(yaw_-target_alpha)<0.2){	
+		if (abs(yaw_-target_alpha)<0.2 && distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint)<0.3){
 			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
 			target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
 			target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
