@@ -512,7 +512,7 @@ void OffboardControl::enuFlight()
         }
 
 		// rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
-		if (abs(yaw_-target_alpha)<0.2 && distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint)<0.3){
+		if (abs(yaw_-target_alpha)<0.2 && distanceBetweenxy(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint)<0.5){
 			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
 			target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
 			target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
@@ -1481,6 +1481,15 @@ double OffboardControl::distanceBetween(geometry_msgs::PoseStamped current, geom
     distance << target.pose.position.x - current.pose.position.x,
                 target.pose.position.y - current.pose.position.y,
                 target.pose.position.z - current.pose.position.z;
+
+	return distance.norm();
+}
+
+double OffboardControl::distanceBetweenxy(geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target)
+{
+    Eigen::Vector3d distance;
+    distance << target.pose.position.x - current.pose.position.x,
+                target.pose.position.y - current.pose.position.y;
 
 	return distance.norm();
 }
