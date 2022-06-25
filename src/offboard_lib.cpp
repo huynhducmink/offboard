@@ -554,11 +554,11 @@ void OffboardControl::enuFlight()
         //use the first line when flying as it dont check yaw error when position has been reached
         //second line only for spinning test or when need to check both position and yaw angle
         bool target_reached = checkPositionError(target_error_, setpoint);
-        bool target_yaw_reached = checkPositionAndYawError(target_error_,target_yaw_error_,yaw_,setpoint,setpoint_yaw)
+        bool target_yaw_reached = checkPositionAndYawError(target_error_,target_yaw_error_,yaw_,setpoint,setpoint_yaw);
 
-        if(target_reached && !target_yaw_reached !final_position_reached_)
+        if(target_reached && !target_yaw_reached && !final_position_reached_)
         {
-            std::printf("Reach target position but not yaw angle, rotating...\n")
+            std::printf("Reach target position but not yaw angle, rotating...\n");
             target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(setpoint_yaw);
 			target_enu_pose_.pose.position.x = x_target_[i];
 			target_enu_pose_.pose.position.y = y_target_[i];
