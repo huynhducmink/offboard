@@ -3,7 +3,7 @@
     <arg name="simulation" default="false"/>
     <arg name="return_home" default="false"/>
     <arg name="desired_velocity" default="0.3"/>
-    <arg name="hover_time" default="10.0"/>
+    <arg name="hover_time" default="5.0"/>
     <arg name="unpack_time" default="15.0"/>
     <arg name="z_delivery" default="0.5"/>
   
@@ -13,11 +13,11 @@
         <param name="simulation_mode_enable" type="bool" value="$(arg simulation)"/>
         <param name="return_home_mode_enable" type="bool" value="$(arg return_home)"/>
         
-        <param name="number_of_target" type="int" value="4"/>
+        <param name="number_of_target" type="int" value="2"/>
         <param name="target_error" type="double" value="0.1"/>
-        <rosparam param="target_x_pos">[0.0, 6.0, 6.0, 0.0]</rosparam>
-        <rosparam param="target_y_pos">[0.0, 0.0, 6.0, 6.0]</rosparam>
-        <rosparam param="target_z_pos">[5.0, 5.0, 5.0, 5.0]</rosparam>
+        <rosparam param="target_x_pos">[0.0, 10.0]</rosparam>
+        <rosparam param="target_y_pos">[0.0, 10.0]</rosparam>
+        <rosparam param="target_z_pos">[5.0, 8.0]</rosparam>
         <rosparam param="target_yaw">[0.0, 90.0, 180.0, 270.0]</rosparam>
         <param name="number_of_goal" type="int" value="3"/>
         <param name="goal_error" type="double" value="0.2"/>
@@ -35,8 +35,8 @@
         <param name="land_velocity" type="double" value="0.7"/>
         <param name="return_velcity" type="double" value="0.7"/>
 
-        <param name="yaw_rate" type="double" value="0.1"/>
-        <param name="yaw_error" type="double" value="0.03"/>
+        <param name="yaw_rate" type="double" value="0.3"/>
+        <param name="yaw_error" type="double" value="0.08"/>
 
     </node>
 </launch>

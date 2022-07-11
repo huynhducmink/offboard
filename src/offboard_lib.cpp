@@ -11,7 +11,8 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
   return_home_mode_enable_(false)
 {
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
-    odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
 
@@ -897,24 +898,29 @@ void OffboardControl::plannerFlight()
             }
 
             // rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
-            if (abs(yaw_-target_alpha)<0.2){	
-                target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-                target_enu_pose_.pose.position.x = opt_point_.x;
-                target_enu_pose_.pose.position.y = opt_point_.y; 
-                target_enu_pose_.pose.position.z = opt_point_.z;
-                // update the hold position // detail mention above
-                current_hold_x = current_odom_.pose.pose.position.x;
-                current_hold_y = current_odom_.pose.pose.position.y;
-                current_hold_z = current_odom_.pose.pose.position.z;
-            }
-            else {
-                target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-                //using the hold position as target help the drone reduce drift
-                target_enu_pose_.pose.position.x = current_hold_x;
-                target_enu_pose_.pose.position.y = current_hold_y;
-                target_enu_pose_.pose.position.z = current_hold_z;
-                std::printf("Rotating \n");
-            }
+            //if (abs(yaw_-target_alpha)<0.2){	
+            //    target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+            //    target_enu_pose_.pose.position.x = opt_point_.x;
+            //    target_enu_pose_.pose.position.y = opt_point_.y; 
+            //    target_enu_pose_.pose.position.z = opt_point_.z;
+            //    // update the hold position // detail mention above
+            //    current_hold_x = current_odom_.pose.pose.position.x;
+            //    current_hold_y = current_odom_.pose.pose.position.y;
+            //    current_hold_z = current_odom_.pose.pose.position.z;
+            //}
+            //else {
+            //    target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+            //    //using the hold position as target help the drone reduce drift
+            //    target_enu_pose_.pose.position.x = current_hold_x;
+            //    target_enu_pose_.pose.position.y = current_hold_y;
+            //    target_enu_pose_.pose.position.z = current_hold_z;
+            //    std::printf("Rotating \n");
+            //}
+
+            target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+            target_enu_pose_.pose.position.x = opt_point_.x;
+            target_enu_pose_.pose.position.y = opt_point_.y; 
+            target_enu_pose_.pose.position.z = opt_point_.z;
 
             // target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(curr_alpha);
             // target_enu_pose_.pose.position.x = opt_point_.x; 
