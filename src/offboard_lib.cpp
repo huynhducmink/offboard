@@ -11,12 +11,13 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
   return_home_mode_enable_(false)
 {
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
-    //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
-    odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
 
     setpoint_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+    velocity_pub_ = nh_.advertise<geometry_msgs::Twist>("/mavros/setpoint_velocity/cmd_vel_unstamped", 10);
     arming_client_ = nh_.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
 
@@ -106,11 +107,18 @@ void OffboardControl::setOffboardStream(double hz, geometry_msgs::PoseStamped fi
 {
     ros::Rate rate(hz);
     std::printf("[ INFO] Setting OFFBOARD stream \n");
+    //for(int i=50; ros::ok() && i>0; --i)
+    //{
+    //    target_enu_pose_ = first_target;
+    //    target_enu_pose_.header.stamp = ros::Time::now();
+    //    setpoint_pose_pub_.publish(target_enu_pose_);
+    //    ros::spinOnce();
+    //    rate.sleep();
+    //}
     for(int i=50; ros::ok() && i>0; --i)
     {
-        target_enu_pose_ = first_target;
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        set_vel(0,0,0.01,0,0,0);
+        velocity_pub_.publish(velocity_controller_vel);
         ros::spinOnce();
         rate.sleep();
     }
@@ -482,68 +490,70 @@ void OffboardControl::enuFlight()
             setpoint_yaw = yaw_target_[num_of_enu_target_-1];
         }
 
-        components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
 
         // target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
         // target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z));
         
         //calculate desired yaw angle to be between current position and new setpoint
-        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         //calculate desired yaw angle to be between old setpoint and new setpoint
         // target_alpha = calculateYawOffset(targetTransfer(x_target_[i-1], y_target_[i-1], z_target_[i-1]), setpoint);
         //used for testing
         // target_alpha = target_yaw_;
 
         // test to know what direction drone need to spin
-        if ((yaw_-target_alpha)>=PI){
-            target_alpha+=2*PI;
-        }
-        else if ((yaw_-target_alpha)<=-PI){
-            target_alpha-=2*PI;
-        }
-        else{}
+        //if ((yaw_-target_alpha)>=PI){
+        //    target_alpha+=2*PI;
+        //}
+        //else if ((yaw_-target_alpha)<=-PI){
+        //    target_alpha-=2*PI;
+        //}
+        //else{}
 
         // calculate the input for position controller (this_loop_alpha) so that the input yaw value will always be higher or lower than current yaw angle (yaw_) a value of yaw_rate_
         // this make the drone yaw slower
-        if (target_alpha<=yaw_){
-            if ((yaw_-target_alpha)>yaw_rate_){
-                this_loop_alpha=yaw_-yaw_rate_;
-            }
-            else {
-                this_loop_alpha=target_alpha;
-            }
-        }
-        else{
-            if ((target_alpha-yaw_)>yaw_rate_){
-                this_loop_alpha=yaw_+yaw_rate_;
-            }
-            else {
-                this_loop_alpha=target_alpha;
-            }
-        }
+        //if (target_alpha<=yaw_){
+        //    if ((yaw_-target_alpha)>yaw_rate_){
+        //        this_loop_alpha=yaw_-yaw_rate_;
+        //    }
+        //    else {
+        //        this_loop_alpha=target_alpha;
+        //    }
+        //}
+        //else{
+        //    if ((target_alpha-yaw_)>yaw_rate_){
+        //        this_loop_alpha=yaw_+yaw_rate_;
+        //    }
+        //    else {
+        //        this_loop_alpha=target_alpha;
+        //    }
+        //}
 
 		// rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
-		if (abs(yaw_-target_alpha)<0.2){	
-			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-			target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
-			target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
-			target_enu_pose_.pose.position.z = current_odom_.pose.pose.position.z + components_vel_.z; 
-            // update the hold position // detail mention above
-            current_hold_x = current_odom_.pose.pose.position.x;
-            current_hold_y = current_odom_.pose.pose.position.y;
-            current_hold_z = current_odom_.pose.pose.position.z;
-		}
-		else {
-			target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-            //using the hold position as target help the drone reduce drift
-			target_enu_pose_.pose.position.x = current_hold_x;
-			target_enu_pose_.pose.position.y = current_hold_y;
-			target_enu_pose_.pose.position.z = current_hold_z;
-			std::printf("Rotating \n");
-		}
+		//if (abs(yaw_-target_alpha)<0.2){	
+		//	target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+		//	target_enu_pose_.pose.position.x = current_odom_.pose.pose.position.x + components_vel_.x; 
+		//	target_enu_pose_.pose.position.y = current_odom_.pose.pose.position.y + components_vel_.y; 
+		//	target_enu_pose_.pose.position.z = current_odom_.pose.pose.position.z + components_vel_.z; 
+  //          // update the hold position // detail mention above
+  //          current_hold_x = current_odom_.pose.pose.position.x;
+  //          current_hold_y = current_odom_.pose.pose.position.y;
+  //          current_hold_z = current_odom_.pose.pose.position.z;
+		//}
+		//else {
+		//	target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+  //          //using the hold position as target help the drone reduce drift
+		//	target_enu_pose_.pose.position.x = current_hold_x;
+		//	target_enu_pose_.pose.position.y = current_hold_y;
+		//	target_enu_pose_.pose.position.z = current_hold_z;
+		//	std::printf("Rotating \n");
+		//}
 
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        // target_enu_pose_.header.stamp = ros::Time::now();
+        //setpoint_pose_pub_.publish(target_enu_pose_);
+        cal_vel(setpoint, true, true);
+        velocity_pub_.publish(velocity_controller_vel);
 
         distance_ = distanceBetween(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         std::printf("Distance to target: %.1f (m) \n", distance_);
@@ -555,18 +565,8 @@ void OffboardControl::enuFlight()
         //use the first line when flying as it dont check yaw error when position has been reached
         //second line only for spinning test or when need to check both position and yaw angle
         bool target_reached = checkPositionError(target_error_, setpoint);
-        bool target_yaw_reached = checkPositionAndYawError(target_error_,target_yaw_error_,yaw_,setpoint,setpoint_yaw);
 
-        if(target_reached && !target_yaw_reached && !final_position_reached_)
-        {
-            std::printf("Reach target position but not yaw angle, rotating...\n");
-            target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(setpoint_yaw);
-			target_enu_pose_.pose.position.x = x_target_[i];
-			target_enu_pose_.pose.position.y = y_target_[i];
-			target_enu_pose_.pose.position.z = z_target_[i];
-            setpoint_pose_pub_.publish(target_enu_pose_);
-        }
-        if(target_reached && target_yaw_reached && !final_position_reached_)
+        if(target_reached && !final_position_reached_)
         {
             std::printf("\n[ INFO] Reached position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             
@@ -578,7 +578,7 @@ void OffboardControl::enuFlight()
             std::printf("\n[ INFO] Next target: [%.1f, %.1f, %.1f]\n", x_target_[i+1], y_target_[i+1], z_target_[i+1]);
             i+=1;
         }
-        if(target_reached && target_yaw_reached && final_position_reached_)
+        if(target_reached && final_position_reached_)
         {
             std::printf("\n[ INFO] Reached Final position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             hovering(setpoint, hover_time_);
@@ -841,11 +841,13 @@ void OffboardControl::plannerFlight()
     {
         setpoint = targetTransfer(x_target_[0], y_target_[0], z_target_[0]);
      
-        components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
      
-        target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x+components_vel_.x, current_odom_.pose.pose.position.y+components_vel_.y, current_odom_.pose.pose.position.z+components_vel_.z);
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        //target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x+components_vel_.x, current_odom_.pose.pose.position.y+components_vel_.y, current_odom_.pose.pose.position.z+components_vel_.z);
+        //target_enu_pose_.header.stamp = ros::Time::now();
+        //setpoint_pose_pub_.publish(target_enu_pose_);
+        cal_vel(setpoint,false, false);
+        velocity_pub_.publish(velocity_controller_vel);
         first_target_reached = checkPositionError(target_error_, setpoint);
         if(first_target_reached)
         {
@@ -867,35 +869,35 @@ void OffboardControl::plannerFlight()
             
             // curr_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
 
-            target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
+            //target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(opt_point_.x, opt_point_.y, opt_point_.z));
 
             // test to know what direction drone need to spin
-            if ((yaw_-target_alpha)>=PI){
-                target_alpha+=2*PI;
-            }
-            else if ((yaw_-target_alpha)<=-PI){
-                target_alpha-=2*PI;
-            }
-            else{}
+            //if ((yaw_-target_alpha)>=PI){
+            //    target_alpha+=2*PI;
+            //}
+            //else if ((yaw_-target_alpha)<=-PI){
+            //    target_alpha-=2*PI;
+            //}
+            //else{}
 
             // calculate the input for position controller (this_loop_alpha) so that the input yaw value will always be higher or lower than current yaw angle (yaw_) a value of yaw_rate_
             // this make the drone yaw slower
-            if (target_alpha<=yaw_){
-                if ((yaw_-target_alpha)>yaw_rate_){
-                    this_loop_alpha=yaw_-yaw_rate_;
-                }
-                else {
-                    this_loop_alpha=target_alpha;
-                }
-            }
-            else{
-                if ((target_alpha-yaw_)>yaw_rate_){
-                    this_loop_alpha=yaw_+yaw_rate_;
-                }
-                else {
-                    this_loop_alpha=target_alpha;
-                }
-            }
+            //if (target_alpha<=yaw_){
+            //    if ((yaw_-target_alpha)>yaw_rate_){
+            //        this_loop_alpha=yaw_-yaw_rate_;
+            //    }
+            //    else {
+            //        this_loop_alpha=target_alpha;
+            //    }
+            //}
+            //else{
+            //    if ((target_alpha-yaw_)>yaw_rate_){
+            //        this_loop_alpha=yaw_+yaw_rate_;
+            //    }
+            //    else {
+            //        this_loop_alpha=target_alpha;
+            //    }
+            //}
 
             // rotate at current position if yaw angle needed higher than 0.2 rad, otw exec both moving and yaw at the same time
             //if (abs(yaw_-target_alpha)<0.2){	
@@ -917,18 +919,20 @@ void OffboardControl::plannerFlight()
             //    std::printf("Rotating \n");
             //}
 
-            target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
-            target_enu_pose_.pose.position.x = opt_point_.x;
-            target_enu_pose_.pose.position.y = opt_point_.y; 
-            target_enu_pose_.pose.position.z = opt_point_.z;
+            //target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(this_loop_alpha);
+            //target_enu_pose_.pose.position.x = opt_point_.x;
+            //target_enu_pose_.pose.position.y = opt_point_.y; 
+            //target_enu_pose_.pose.position.z = opt_point_.z;
 
             // target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(curr_alpha);
             // target_enu_pose_.pose.position.x = opt_point_.x; 
             // target_enu_pose_.pose.position.y = opt_point_.y; 
             // target_enu_pose_.pose.position.z = opt_point_.z; 
 
-            target_enu_pose_.header.stamp = ros::Time::now();
-            setpoint_pose_pub_.publish(target_enu_pose_);
+            //target_enu_pose_.header.stamp = ros::Time::now();
+            //setpoint_pose_pub_.publish(target_enu_pose_);
+            cal_vel(targetTransfer(opt_point_.x,opt_point_.y,opt_point_.z),true,true);
+            velocity_pub_.publish(velocity_controller_vel);
             
             final_reached = checkPositionError(target_error_, setpoint);
             
@@ -1220,11 +1224,13 @@ void OffboardControl::takeOff(geometry_msgs::PoseStamped setpoint, double hover_
     bool takeoff_reached = false;
     while(ros::ok() && !takeoff_reached)
     {
-        components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         
-        target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        //target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
+        //target_enu_pose_.header.stamp = ros::Time::now();
+        //setpoint_pose_pub_.publish(target_enu_pose_);
+        cal_vel(setpoint, false, false);
+        velocity_pub_.publish(velocity_controller_vel);
 
         takeoff_reached = checkPositionError(target_error_, setpoint);
         if(takeoff_reached)
@@ -1252,13 +1258,15 @@ void OffboardControl::hovering(geometry_msgs::PoseStamped setpoint, double hover
     {
         // setpoint_pose_pub_.publish(setpoint);
 
-        target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(yaw_);
-        target_enu_pose_.pose.position.x = setpoint.pose.position.x; 
-        target_enu_pose_.pose.position.y = setpoint.pose.position.y; 
-        target_enu_pose_.pose.position.z = setpoint.pose.position.z; 
+        //target_enu_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(yaw_);
+        //target_enu_pose_.pose.position.x = setpoint.pose.position.x; 
+        //target_enu_pose_.pose.position.y = setpoint.pose.position.y; 
+        //target_enu_pose_.pose.position.z = setpoint.pose.position.z; 
 
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        //target_enu_pose_.header.stamp = ros::Time::now();
+        //setpoint_pose_pub_.publish(target_enu_pose_);
+        cal_vel(setpoint,false,false);
+        velocity_pub_.publish(velocity_controller_vel);
 
         ros::spinOnce();
     	rate.sleep();
@@ -1274,13 +1282,15 @@ void OffboardControl::landing(geometry_msgs::PoseStamped setpoint)
     std::printf("[ INFO] Landing\n");
     while(ros::ok() && !land_reached)
     {
-        components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
+        //components_vel_ = velComponentsCalc(vel_desired_, targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), setpoint);
         
-        target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
-        target_enu_pose_.header.stamp = ros::Time::now();
-        setpoint_pose_pub_.publish(target_enu_pose_);
+        //target_enu_pose_ = targetTransfer(current_odom_.pose.pose.position.x + components_vel_.x, current_odom_.pose.pose.position.y + components_vel_.y, current_odom_.pose.pose.position.z + components_vel_.z);
+        //target_enu_pose_.header.stamp = ros::Time::now();
+        //setpoint_pose_pub_.publish(target_enu_pose_);
 
-        land_reached = checkPositionError(land_error_, setpoint);
+        //land_reached = checkPositionError(land_error_, setpoint);
+        cal_vel(setpoint,false,false);
+        velocity_pub_.publish(velocity_controller_vel);
 
         if(current_state_.system_status == 3)
         {
@@ -1660,4 +1670,54 @@ geographic_msgs::GeoPoint OffboardControl::ENUToWGS84(geometry_msgs::Point enu, 
     geometry_msgs::Point ecef = ENUToECEF(enu, ref);
     geographic_msgs::GeoPoint wgs84 = ECEFToWGS84(ecef);
     return wgs84;
+}
+
+void OffboardControl::set_vel(double linearx, double lineary, double linearz, double angularx, double angulary, double angularz)
+{
+    velocity_controller_vel.linear.x = linearx;
+    velocity_controller_vel.linear.y = lineary;
+    velocity_controller_vel.linear.z = linearz;
+    velocity_controller_vel.angular.x = angularx;
+    velocity_controller_vel.angular.y = angulary;
+    velocity_controller_vel.angular.z = angularz;
+}
+
+void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool yaw_or_not, bool debug)
+{
+    double velx = setpoint_input.pose.position.x - current_odom_.pose.pose.position.x;
+    double vely = setpoint_input.pose.position.y - current_odom_.pose.pose.position.y;
+    double velz = setpoint_input.pose.position.z - current_odom_.pose.pose.position.z;
+
+    double vel = sqrt(sqr(velx)+sqr(vely)+sqr(velz));
+    velocity_controller_vel.linear.x = velx/vel*0.3;
+    velocity_controller_vel.linear.y = vely/vel*0.3;
+    velocity_controller_vel.linear.z = velz/vel*0.3;
+
+    double target_alpha;
+    if (yaw_or_not == true){
+        target_alpha = calculateYawOffset(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), targetTransfer(setpoint_input.pose.position.x, setpoint_input.pose.position.y, setpoint_input.pose.position.z));
+
+        if ((yaw_-target_alpha)>=PI){
+            target_alpha+=2*PI;
+        }
+        else if ((yaw_-target_alpha)<=-PI){
+            target_alpha-=2*PI;
+        }
+        else{}
+        velocity_controller_vel.angular.z = (target_alpha - yaw_);
+
+        if (velocity_controller_vel.angular.z > 0.4){velocity_controller_vel.angular.z = 0.4;}
+        if (velocity_controller_vel.angular.z < -0.4){velocity_controller_vel.angular.z = -0.4;}
+
+        if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.3 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.3 ){
+            velocity_controller_vel.angular.z = 0;
+        }
+    }
+
+    else{
+        velocity_controller_vel.angular.z = 0;
+    }
+    //if (debug == true){
+    //    std::printf("Yaw: %f | Target: %f | Speed: %f \n ",yaw_,target_alpha,velocity_controller_vel.angular.z);
+    //}
 }
