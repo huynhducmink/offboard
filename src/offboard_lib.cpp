@@ -11,8 +11,8 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
   return_home_mode_enable_(false)
 {
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
-    odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
-    //odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
 
@@ -1684,14 +1684,27 @@ void OffboardControl::set_vel(double linearx, double lineary, double linearz, do
 
 void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool yaw_or_not, bool debug)
 {
-    double velx = setpoint_input.pose.position.x - current_odom_.pose.pose.position.x;
-    double vely = setpoint_input.pose.position.y - current_odom_.pose.pose.position.y;
-    double velz = setpoint_input.pose.position.z - current_odom_.pose.pose.position.z;
+    kp = 0.4;
+    kd = 0.003;
+    double distx = setpoint_input.pose.position.x - current_odom_.pose.pose.position.x;
+    double disty = setpoint_input.pose.position.y - current_odom_.pose.pose.position.y;
+    double distz = setpoint_input.pose.position.z - current_odom_.pose.pose.position.z;
 
-    double vel = sqrt(sqr(velx)+sqr(vely)+sqr(velz));
-    velocity_controller_vel.linear.x = velx/vel*0.3;
-    velocity_controller_vel.linear.y = vely/vel*0.3;
-    velocity_controller_vel.linear.z = velz/vel*0.3;
+    double dist = sqrt(sqr(distx)+sqr(disty)+sqr(distz));
+    error = dist;
+    derror = (error - lasterror)/0.01;
+    double speed = error * kp + derror * kd;
+    velocity_controller_vel.linear.x = distx/dist*speed;
+    velocity_controller_vel.linear.y = disty/dist*speed;
+    velocity_controller_vel.linear.z = distz/dist*speed;
+    lasterror = error;
+
+    if (velocity_controller_vel.linear.x > 1){velocity_controller_vel.linear.x = 1;}
+    if (velocity_controller_vel.linear.y > 1){velocity_controller_vel.linear.y = 1;}
+    if (velocity_controller_vel.linear.z > 1){velocity_controller_vel.linear.z = 1;}
+    if (velocity_controller_vel.linear.x < -1){velocity_controller_vel.linear.x = -1;}
+    if (velocity_controller_vel.linear.y < -1){velocity_controller_vel.linear.y = -1;}
+    if (velocity_controller_vel.linear.z < -1){velocity_controller_vel.linear.z = -1;}
 
     double target_alpha;
     if (yaw_or_not == true){
@@ -1706,8 +1719,8 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
         else{}
         velocity_controller_vel.angular.z = (target_alpha - yaw_);
 
-        if (velocity_controller_vel.angular.z > 0.4){velocity_controller_vel.angular.z = 0.4;}
-        if (velocity_controller_vel.angular.z < -0.4){velocity_controller_vel.angular.z = -0.4;}
+        if (velocity_controller_vel.angular.z > 0.5){velocity_controller_vel.angular.z = 0.5;}
+        if (velocity_controller_vel.angular.z < -0.5){velocity_controller_vel.angular.z = -0.5;}
 
         if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.3 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.3 ){
             velocity_controller_vel.angular.z = 0;
@@ -1717,7 +1730,5 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
     else{
         velocity_controller_vel.angular.z = 0;
     }
-    //if (debug == true){
-    //    std::printf("Yaw: %f | Target: %f | Speed: %f \n ",yaw_,target_alpha,velocity_controller_vel.angular.z);
-    //}
+    std::printf("x: %.1f | : %.1f | z: %.1f \n ",velocity_controller_vel.linear.x,velocity_controller_vel.linear.y,velocity_controller_vel.linear.z);
 }

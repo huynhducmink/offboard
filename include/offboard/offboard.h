@@ -174,6 +174,13 @@ class OffboardControl
 	geometry_msgs::Point ENUToECEF(geometry_msgs::Point enu, sensor_msgs::NavSatFix ref); // convert from ENU x,y,z to ECEF x,y,z
 	geometry_msgs::Point WGS84ToENU(sensor_msgs::NavSatFix wgs84, sensor_msgs::NavSatFix ref); // convert from WGS84 GPS (LLA) to ENU x,y,z
 	geographic_msgs::GeoPoint ENUToWGS84(geometry_msgs::Point enu, sensor_msgs::NavSatFix ref); // convert from ENU x,y,z to WGS84 GPS (LLA)
+
+	//PID speed control
+	double error;
+	double derror;
+	double kp;
+	double kd;
+	double lasterror;
 };
 
 
