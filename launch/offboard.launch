@@ -2,9 +2,6 @@
     <arg name="delivery" default="false"/>
     <arg name="simulation" default="false"/>
     <arg name="return_home" default="false"/>
-    <arg name="desired_velocity" default="0.3"/>
-    <arg name="hover_time" default="5.0"/>
-    <arg name="unpack_time" default="15.0"/>
     <arg name="z_delivery" default="0.5"/>
   
     <!-- <rosparam command="load" file="$(find offboard)/config/config.yaml" /> -->
@@ -29,14 +26,12 @@
         <param name="z_delivery" type="double" value="$(arg z_delivery)"/>
         <param name="land_error" type="double" value="0.1"/>
         <param name="takeoff_hover_time" type="double" value="2.0"/>
-        <param name="hover_time" type="double" value="$(arg hover_time)"/>
-        <param name="unpack_time" type="double" value="$(arg unpack_time)"/>
-        <param name="desired_velocity" type="double" value="$(arg desired_velocity)"/>
-        <param name="land_velocity" type="double" value="0.7"/>
-        <param name="return_velcity" type="double" value="0.7"/>
+        <param name="hover_time" type="double" value="10.0"/>
+        <param name="unpack_time" type="double" value="15.0"/>
 
-        <param name="yaw_rate" type="double" value="0.3"/>
-        <param name="yaw_error" type="double" value="0.08"/>
+        <param name="PID_kp" type="double" value="0.4"/>
+        <param name="PID_kd" type="double" value="0.003"/>
+        <param name="PID_simulate_sample_time" type="double" value="0.01"/>
 
     </node>
 </launch>

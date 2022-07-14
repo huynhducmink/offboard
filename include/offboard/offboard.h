@@ -97,15 +97,10 @@ class OffboardControl
 	double z_takeoff_; // the height to takeoff when start. drone'll takeoff to z_takeoff_ then start the mission
 	double z_delivery_; // the height (set to 0.0 for land to ground - need to set disable auto-disarm of pixhawk) want drone go to for delivery in delivery mode
 
-	double vel_desired_, land_vel_, return_vel_; // corresponding desired speed to fly, when land and when return home
-
-	double yaw_rate_;
-	double yaw_error_;
-	double target_yaw_;
-
+	//HM change to velocity controller
 	geometry_msgs::Twist velocity_controller_vel;
 	void set_vel(double linearx, double lineary, double linearz, double angularx, double angulary, double angularz); //update velocity of velocity controller
-	void cal_vel(geometry_msgs::PoseStamped setpoint_input, bool yaw_or_not, bool debug);
+	void cal_vel(geometry_msgs::PoseStamped setpoint_input, bool yaw_or_not);
 
 	geometry_msgs::Vector3 components_vel_; // components of desired velocity about x, y, z axis
 	double hover_time_, takeoff_hover_time_, unpack_time_; // corresponding hover time when reached setpoint, when takeoff and when unpacking
@@ -166,7 +161,6 @@ class OffboardControl
 	// geometry_msgs::Quaternion getQuaternionMsg(double roll, double pitch, double yaw); // create quaternion msg from roll, pitch and yaw
 	
 	double distanceBetween(geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target); // calculate distance between current position and setpoint position
-	geometry_msgs::Vector3 velComponentsCalc(double v_desired, geometry_msgs::PoseStamped current, geometry_msgs::PoseStamped target); // calculate components of velocity about x, y, z axis
 
 	geometry_msgs::Point WGS84ToECEF(sensor_msgs::NavSatFix wgs84); // convert from WGS84 GPS (LLA) to ECEF x,y,z
 	geographic_msgs::GeoPoint ECEFToWGS84(geometry_msgs::Point ecef); // convert from ECEF x,y,z to WGS84 GPS (LLA)  
@@ -176,11 +170,12 @@ class OffboardControl
 	geographic_msgs::GeoPoint ENUToWGS84(geometry_msgs::Point enu, sensor_msgs::NavSatFix ref); // convert from ENU x,y,z to WGS84 GPS (LLA)
 
 	//PID speed control
-	double error;
-	double derror;
-	double kp;
-	double kd;
-	double lasterror;
+	double PID_kp_;
+	double PID_kd_;
+	double PID_simulate_sample_time_;
+	double PID_error_;
+	double PID_derror_;
+	double PID_lasterror_;
 };
 
 
