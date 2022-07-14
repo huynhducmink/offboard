@@ -1,28 +1,6 @@
 # IVSR OFFBOARD package
-Update 27/02/2022
-Yaw speed set to 0.1
+### Update 13/07/2022 Currently using velocity PD control
 
-Change the target yaw angle back to the angle between current position and next setpoint/optimal point as in planner flight we don't have a list of fixed setpoints.
-
-When drone need to rotate large yaw angle (>0.2rad), it will fix it position (find "current_hold") and change yaw so that it will not drift much.
-
-Testing with ENU flight show somewhat better results. Didn't test with planner flight yet. Asking Duy to help.
-
-
-Update for slower yaw speed: 
-change yaw_rate value in offboard.launch (suggest value around 0.2 - 0.3) to change yaw speed of the drone
-2 main point: 
- - Change the desired yaw angle to be between the old setpoint and new setpoint in replacement for between current position and new setpoint. This help to stabilize the drone yaw angle when flying in a trajectory with setpoints close to each other.
- - The publish yaw angle is an offset of the current yaw angle with offset value equal yaw_rate, this make the drone yaw slower.
-
-Currently applied to only ENU flight, for planner flight please apply the same code to plannerFlight function
-
-***
-## !!! WARNING
-
-__*OFFBOARD* control is dangerous.__
-
-**If you are operating on a real vehicle be sure to have a way of gaining back manual control in case something goes wrong.**
 ***
 
 ## Contain
@@ -32,12 +10,13 @@ __*OFFBOARD* control is dangerous.__
 - *src/offboard_lib.cpp*: library for offboard node
 - *src/setmode_offb.cpp*: set OFFBOARD mode and ARM vehicle in simulation
 - *launch/offboard.launch*: launch file, include parameter
+- *launch/planner.launch*: launch file for using with planner
 
 ## Required
 
 ### Environments
-- **ROS**: tested on [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu) (Ubuntu 18.04)
-- **PX4 Firmware**: tested on v10.0.1 - setup [here](https://github.com/congtranv/px4_install)
+- **ROS**: tested on [ROS Noetic](http://wiki.ros.org/noetic) (Ubuntu 20.04)
+- **PX4 Firmware**: tested on v1.13.0 - setup [here](https://github.com/PX4/PX4-Autopilot/releases/tag/v1.13.0)
 - **Catkin workspace**: `catkin_ws`
   ```
   ## create a workspace if you've not had one
@@ -74,12 +53,12 @@ cd [path/to/ws]/catkin_ws
 ```
 catkin build
 ```
-### [congtranv/offboard](https://github.com/congtranv/offboard)
+### [huynhducmink/offboard](https://github.com/huynhducmink/offboard)
 ```
 cd [path/to/ws]/catkin_ws/src
 ```
 ```
-git clone https://github.com/congtranv/offboard.git
+git clone https://github.com/huynhducmink/offboard
 ```
 ```
 cd [path/to/ws]/catkin_ws
