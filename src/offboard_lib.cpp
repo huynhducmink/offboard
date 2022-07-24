@@ -11,7 +11,8 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
   return_home_mode_enable_(false)
 {
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
-    odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/gazebo_groundtruth_odo", 10, &OffboardControl::odomCallback, this);
     //odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
@@ -586,11 +587,15 @@ void OffboardControl::plannerFlight()
         if(first_target_reached)
         {
             std::printf("\n[ INFO] Reached start point of Optimization path\n");
-            hovering(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), 0.5);
+//            hovering(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), 0.5);
             break;
         }
         ros::spinOnce();
         rate.sleep();
+    }
+    while(!opt_point_received_){
+        hovering(setpoint, 0.2);
+        ros::spinOnce();
     }
     ros::Time current_time = ros::Time::now();
     if(opt_point_received_)
