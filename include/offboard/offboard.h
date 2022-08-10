@@ -53,7 +53,7 @@ class OffboardControl
 	ros::Subscriber opt_point_sub_; // optimization point from planner subscriber
 	ros::Subscriber odom_sub_; // odometry subscriber
 
-	ros::Publisher setpoint_pose_pub_; // publish target pose to drone
+	ros::Publisher setpoint_pose_pub_; // publish target pose
 	ros::Publisher velocity_pub_; // publish velocity to drone
 	ros::ServiceClient set_mode_client_; // set OFFBOARD mode in simulation
 	ros::ServiceClient arming_client_; // call arm command in simulation
@@ -101,6 +101,7 @@ class OffboardControl
 	geometry_msgs::Twist velocity_controller_vel;
 	void set_vel(double linearx, double lineary, double linearz, double angularx, double angulary, double angularz); //update velocity of velocity controller
 	void cal_vel(geometry_msgs::PoseStamped setpoint_input, bool yaw_or_not);
+	void pub_setpoint(geometry_msgs::PoseStamped msg);
 
 	geometry_msgs::Vector3 components_vel_; // components of desired velocity about x, y, z axis
 	double hover_time_, takeoff_hover_time_, unpack_time_; // corresponding hover time when reached setpoint, when takeoff and when unpacking

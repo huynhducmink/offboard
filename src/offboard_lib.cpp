@@ -12,12 +12,12 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
 {
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
     //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
-    odom_sub_ = nh_.subscribe("/gazebo_groundtruth_odo", 10, &OffboardControl::odomCallback, this);
-    //odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/gazebo_groundtruth_odo", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
 
-    setpoint_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+    setpoint_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/controller_setpoint", 10);
     velocity_pub_ = nh_.advertise<geometry_msgs::Twist>("/mavros/setpoint_velocity/cmd_vel_unstamped", 10);
     arming_client_ = nh_.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
@@ -318,19 +318,20 @@ void OffboardControl::inputENU()
         {
             std::printf(" Target (%d) postion x, y, z (in meter): ", i+1);
             std::cin >> x >> y >> z;
-            std::printf(" Target (%d) yaw angle in radian: ",i+1);
-            std::cin >> yaw;
+            //std::printf(" Target (%d) yaw angle in radian: ",i+1);
+            //std::cin >> yaw;
             x_target_.push_back(x); 
             y_target_.push_back(y); 
             z_target_.push_back(z);
-            yaw_target_.push_back(yaw);
+            yaw_target_.push_back(0);
             ros::spinOnce();
             rate.sleep();
         }
         std::printf(" Error to check target reached (in meter): ");
         std::cin >> target_error_;
-        std::printf(" Error to check yaw target reached (in radian): ");
-        std::cin >> target_yaw_error_;
+        //std::printf(" Error to check yaw target reached (in radian): ");
+        //std::cin >> target_yaw_error_;
+        target_yaw_error_ = 0;
 
     }
     else if(c == '2')
@@ -380,6 +381,7 @@ void OffboardControl::enuFlight()
             setpoint = targetTransfer(x_target_[num_of_enu_target_-1], y_target_[num_of_enu_target_-1], z_target_[num_of_enu_target_-1]);
             setpoint_yaw = yaw_target_[num_of_enu_target_-1];
         }
+        pub_setpoint(setpoint);
         cal_vel(setpoint, true);
         velocity_pub_.publish(velocity_controller_vel);
 
@@ -392,7 +394,7 @@ void OffboardControl::enuFlight()
         {
             std::printf("\n[ INFO] Reached position: [%.1f, %.1f, %.1f]\n", current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z); 
             
-            // hovering(setpoint, hover_time_);
+            hovering(setpoint, 0.5);
             if(delivery_mode_enable_)
             {
                 delivery(setpoint, unpack_time_);
@@ -605,6 +607,12 @@ void OffboardControl::plannerFlight()
         while(ros::ok())
         {
             setpoint = targetTransfer(x_target_[num_of_enu_target_-1], y_target_[num_of_enu_target_-1], z_target_[num_of_enu_target_-1]);
+            geometry_msgs::PoseStamped opt_point_msg;
+            opt_point_msg.pose.position.x = opt_point_.x;
+            opt_point_msg.pose.position.y = opt_point_.y;
+            opt_point_msg.pose.position.z = opt_point_.z;
+            opt_point_msg.header.stamp = ros::Time::now();
+            pub_setpoint(opt_point_msg);
 
             cal_vel(targetTransfer(opt_point_.x,opt_point_.y,opt_point_.z),true);
             velocity_pub_.publish(velocity_controller_vel);
@@ -1096,17 +1104,19 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
     PID_error_ = dist;
     PID_derror_ = (PID_error_ - PID_lasterror_)/PID_simulate_sample_time_;
     double speed = PID_error_ * PID_kp_ + PID_derror_ * PID_kd_;
+    if (speed > 2){speed = 2;}
+    if (speed < -2){speed = -2;}
     velocity_controller_vel.linear.x = distx/dist*speed;
     velocity_controller_vel.linear.y = disty/dist*speed;
     velocity_controller_vel.linear.z = distz/dist*speed;
     PID_lasterror_ = PID_error_;
 
-    if (velocity_controller_vel.linear.x > 1){velocity_controller_vel.linear.x = 1;}
-    if (velocity_controller_vel.linear.y > 1){velocity_controller_vel.linear.y = 1;}
-    if (velocity_controller_vel.linear.z > 1){velocity_controller_vel.linear.z = 1;}
-    if (velocity_controller_vel.linear.x < -1){velocity_controller_vel.linear.x = -1;}
-    if (velocity_controller_vel.linear.y < -1){velocity_controller_vel.linear.y = -1;}
-    if (velocity_controller_vel.linear.z < -1){velocity_controller_vel.linear.z = -1;}
+    //if (velocity_controller_vel.linear.x > 1){velocity_controller_vel.linear.x = 1;}
+    //if (velocity_controller_vel.linear.y > 1){velocity_controller_vel.linear.y = 1;}
+    //if (velocity_controller_vel.linear.z > 1){velocity_controller_vel.linear.z = 1;}
+    //if (velocity_controller_vel.linear.x < -1){velocity_controller_vel.linear.x = -1;}
+    //if (velocity_controller_vel.linear.y < -1){velocity_controller_vel.linear.y = -1;}
+    //if (velocity_controller_vel.linear.z < -1){velocity_controller_vel.linear.z = -1;}
 
     double target_alpha;
     if (yaw_or_not == true){
@@ -1121,8 +1131,8 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
         else{}
         velocity_controller_vel.angular.z = (target_alpha - yaw_);
 
-        if (velocity_controller_vel.angular.z > 0.5){velocity_controller_vel.angular.z = 0.5;}
-        if (velocity_controller_vel.angular.z < -0.5){velocity_controller_vel.angular.z = -0.5;}
+        if (velocity_controller_vel.angular.z > 1.5){velocity_controller_vel.angular.z = 1.5;}
+        if (velocity_controller_vel.angular.z < -1.5){velocity_controller_vel.angular.z = -1.5;}
 
         if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.3 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.3 ){
             velocity_controller_vel.angular.z = 0;
@@ -1133,4 +1143,8 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
         velocity_controller_vel.angular.z = 0;
     }
     //std::printf("x: %.1f | : %.1f | z: %.1f \n ",velocity_controller_vel.linear.x,velocity_controller_vel.linear.y,velocity_controller_vel.linear.z);
+}
+
+void OffboardControl::pub_setpoint(geometry_msgs::PoseStamped msg){
+    setpoint_pose_pub_.publish(msg);
 }

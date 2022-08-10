@@ -10,12 +10,16 @@
         <param name="simulation_mode_enable" type="bool" value="$(arg simulation)"/>
         <param name="return_home_mode_enable" type="bool" value="$(arg return_home)"/>
         
-        <param name="number_of_target" type="int" value="2"/>
+        <!-- ENU setpoint -->
+        <param name="number_of_target" type="int" value="9"/>
         <param name="target_error" type="double" value="0.1"/>
-        <rosparam param="target_x_pos">[0.0, 10.0]</rosparam>
-        <rosparam param="target_y_pos">[0.0, 10.0]</rosparam>
-        <rosparam param="target_z_pos">[5.0, 8.0]</rosparam>
-        <rosparam param="target_yaw">[0.0, 90.0, 180.0, 270.0]</rosparam>
+        <rosparam param="target_x_pos">[0, 10, 5, -5, -5, -10, -10, 2, 0]</rosparam>
+        <rosparam param="target_y_pos">[0, 5, 5, 5, -5, -10, 0, 2, 10]</rosparam>
+        <rosparam param="target_z_pos">[5, 5, 10, 8, 5, 4, 7, 10, 5]</rosparam>
+        <rosparam param="target_yaw">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+
+
+
         <param name="number_of_goal" type="int" value="3"/>
         <param name="goal_error" type="double" value="0.2"/>
         <rosparam param="latitude">[21.0065275, 21.0065305, 21.0065295]</rosparam>
@@ -29,8 +33,8 @@
         <param name="hover_time" type="double" value="10.0"/>
         <param name="unpack_time" type="double" value="15.0"/>
 
-        <param name="PID_kp" type="double" value="0.4"/>
-        <param name="PID_kd" type="double" value="0.003"/>
+        <param name="PID_kp" type="double" value="0.6"/>
+        <param name="PID_kd" type="double" value="0.001"/>
         <param name="PID_simulate_sample_time" type="double" value="0.01"/>
 
     </node>
