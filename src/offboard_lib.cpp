@@ -579,22 +579,30 @@ void OffboardControl::plannerFlight()
     geometry_msgs::PoseStamped setpoint;
     ros::Rate rate(50.0);
 
-    while(ros::ok())
+        while(ros::ok())
     {
         setpoint = targetTransfer(x_target_[0], y_target_[0], z_target_[0]);
      
         cal_vel(setpoint,false);
         velocity_pub_.publish(velocity_controller_vel);
-        first_target_reached = checkPositionError(target_error_, setpoint);
-        if(first_target_reached)
-        {
+        // first_target_reached = checkPositionError(target_error_, setpoint);
+        // if(first_target_reached)
+        // {
+        //     std::printf("\n[ INFO] Reached start point of Optimization path\n");
+        //     hovering(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), 0.5);
+        //     break;
+        // }
+        if(opt_point_received_){
             std::printf("\n[ INFO] Reached start point of Optimization path\n");
-//            hovering(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, current_odom_.pose.pose.position.z), 0.5);
             break;
         }
         ros::spinOnce();
         rate.sleep();
     }
+    // while(!opt_point_received_){
+    //     hovering(setpoint, 0.2);
+    //     ros::spinOnce();
+    // }
     while(!opt_point_received_){
         hovering(setpoint, 0.2);
         ros::spinOnce();
@@ -1134,7 +1142,7 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
         if (velocity_controller_vel.angular.z > 1.5){velocity_controller_vel.angular.z = 1.5;}
         if (velocity_controller_vel.angular.z < -1.5){velocity_controller_vel.angular.z = -1.5;}
 
-        if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.3 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.3 ){
+        if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.5 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.5 ){
             velocity_controller_vel.angular.z = 0;
         }
     }
