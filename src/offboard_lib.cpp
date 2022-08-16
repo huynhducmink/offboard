@@ -13,10 +13,10 @@ OffboardControl::OffboardControl(const ros::NodeHandle &nh, const ros::NodeHandl
     state_sub_ = nh_.subscribe("/mavros/state", 10, &OffboardControl::stateCallback, this);
     //odom_sub_ = nh_.subscribe("/mavros/local_position/odom", 10, &OffboardControl::odomCallback, this);
     //odom_sub_ = nh_.subscribe("/gazebo_groundtruth_odo", 10, &OffboardControl::odomCallback, this);
-    odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
+    //odom_sub_ = nh_.subscribe("/vio_odo", 10, &OffboardControl::odomCallback, this);
+    odom_sub_ = nh_.subscribe("/msf_core/odometry", 10, &OffboardControl::odomCallback, this);
     gps_position_sub_ = nh_.subscribe("/mavros/global_position/global", 10, &OffboardControl::gpsPositionCallback, this);
     opt_point_sub_ = nh_.subscribe("optimization_point", 10, &OffboardControl::optPointCallback, this);
-
     setpoint_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/controller_setpoint", 10);
     velocity_pub_ = nh_.advertise<geometry_msgs::Twist>("/mavros/setpoint_velocity/cmd_vel_unstamped", 10);
     arming_client_ = nh_.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
@@ -562,9 +562,9 @@ void OffboardControl::inputPlanner()
         rate.sleep();
     }
     waitForStable(10.0);
-    setOffboardStream(10.0,targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, z_takeoff_));
+    setOffboardStream(10.0,targetTransfer(0,0, z_takeoff_));
     waitForArmAndOffboard(10.0);
-    takeOff(targetTransfer(current_odom_.pose.pose.position.x, current_odom_.pose.pose.position.y, z_takeoff_), takeoff_hover_time_);
+    takeOff(targetTransfer(0,0, z_takeoff_), takeoff_hover_time_);
     std::printf("\n[ INFO] Flight with Planner setpoint\n");
     std::printf("\n[ INFO] Flight to start point of Optimization path\n");
     plannerFlight();
@@ -603,10 +603,6 @@ void OffboardControl::plannerFlight()
     //     hovering(setpoint, 0.2);
     //     ros::spinOnce();
     // }
-    while(!opt_point_received_){
-        hovering(setpoint, 0.2);
-        ros::spinOnce();
-    }
     ros::Time current_time = ros::Time::now();
     if(opt_point_received_)
     {
@@ -1139,10 +1135,10 @@ void OffboardControl::cal_vel(geometry_msgs::PoseStamped setpoint_input, bool ya
         else{}
         velocity_controller_vel.angular.z = (target_alpha - yaw_);
 
-        if (velocity_controller_vel.angular.z > 1.5){velocity_controller_vel.angular.z = 1.5;}
-        if (velocity_controller_vel.angular.z < -1.5){velocity_controller_vel.angular.z = -1.5;}
+        if (velocity_controller_vel.angular.z > 0.4){velocity_controller_vel.angular.z = 0.4;}
+        if (velocity_controller_vel.angular.z < -0.4){velocity_controller_vel.angular.z = -0.4;}
 
-        if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.5 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.5 ){
+        if (abs(setpoint_input.pose.position.x - current_odom_.pose.pose.position.x)<0.3 && abs(setpoint_input.pose.position.y - current_odom_.pose.pose.position.y)<0.3 ){
             velocity_controller_vel.angular.z = 0;
         }
     }

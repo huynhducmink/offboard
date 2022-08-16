@@ -24,12 +24,12 @@
 
         <param name="z_takeoff" type="double" value="3.0"/>
         <param name="land_error" type="double" value="0.1"/>
-        <param name="takeoff_hover_time" type="double" value="5.0"/>
+        <param name="takeoff_hover_time" type="double" value="10.0"/>
         <param name="hover_time" type="double" value="10.0"/>
         <param name="unpack_time" type="double" value="15.0"/>
 
-        <param name="PID_kp" type="double" value="0.7"/>
-        <param name="PID_kd" type="double" value="0.01"/>
+        <param name="PID_kp" type="double" value="0.6"/>
+        <param name="PID_kd" type="double" value="0.001"/>
         <param name="PID_simulate_sample_time" type="double" value="0.01"/>
 
     </node>
