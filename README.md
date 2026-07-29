@@ -69,9 +69,6 @@ catkin build offboard
 
 ## Usage
 ***
-**IVSR Tutorial: Read from  [onedrive](https://husteduvn-my.sharepoint.com/:w:/g/personal/quang_nguyenanh_hust_edu_vn/EdFUubKnGGFOuTbTw5xGu3IB2g8LsIFqIswVKiPCkyMmTw?e=uTuyDv)**
-***
-***
 ### <span style="color:green">*Before run OFFBOARD node, check and modify (if need) the value of parameters in* **launch/offboard.launch**
 ***
 ### There 2 main functions:
